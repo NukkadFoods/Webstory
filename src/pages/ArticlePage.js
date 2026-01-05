@@ -69,9 +69,31 @@ const ArticlePage = () => {
                 aiCommentary: commentaryData.commentary,
                 reporter: commentaryData.reporter
               }));
+            } else {
+              // Log error details but don't break the page
+              const errorData = await response.json().catch(() => ({}));
+              console.error('❌ Commentary generation failed:', {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorData.error,
+                message: errorData.message
+              });
+              
+              // Set a fallback message
+              setArticle(prev => ({
+                ...prev,
+                aiCommentary: null,
+                commentaryError: errorData.message || 'Unable to generate AI commentary at this time'
+              }));
             }
           } catch (commentaryError) {
-            console.error('Error generating commentary:', commentaryError);
+            console.error('❌ Error generating commentary:', commentaryError);
+            // Set error state but don't break the article display
+            setArticle(prev => ({
+              ...prev,
+              aiCommentary: null,
+              commentaryError: 'Commentary service temporarily unavailable'
+            }));
           }
         }
         
@@ -80,36 +102,8 @@ const ArticlePage = () => {
           document.title = `${article.title} | USDaily24`;
         }
         
-        // Generate commentary only if we have a valid article
-        if (article && article.title) {
-          try {
-            const API_BASE_URL = process.env.REACT_APP_API_URL;
-            const response = await fetch(`${API_BASE_URL}/api/generate-commentary`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                title: article.title,
-                content: article.abstract || article.summary || article.content || 'No content available',
-                category: article.section || article.category || 'general'
-              }),
-            });
-            
-            if (response.ok) {
-              const commentaryData = await response.json();
-              // Update article with commentary
-              setArticle(prev => ({
-                ...prev,
-                aiCommentary: commentaryData.commentary
-              }));
-            } else {
-              console.log('Commentary generation failed with status:', response.status);
-            }
-          } catch (commentaryError) {
-            console.error('Error generating commentary:', commentaryError);
-          }
-        }
+        // Commentary generation is now handled above during article fetch
+        // Removed duplicate commentary call to prevent unnecessary API requests
         
         // Store this article in sessionStorage for quicker access later
         if (article && article.id) {

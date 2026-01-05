@@ -30,7 +30,20 @@ const useArticleCommentary = (articles) => {
             });
 
             if (!response.ok) {
-              throw new Error('Failed to generate commentary');
+              // Get error details
+              const errorData = await response.json().catch(() => ({}));
+              console.error('❌ Commentary API error:', {
+                status: response.status,
+                article: article.title,
+                error: errorData.error,
+                message: errorData.message
+              });
+              
+              return {
+                ...article,
+                aiCommentary: null,
+                commentaryError: errorData.message || 'Failed to generate commentary'
+              };
             }
 
             const data = await response.json();
@@ -39,10 +52,14 @@ const useArticleCommentary = (articles) => {
               aiCommentary: data.commentary
             };
           } catch (error) {
-            console.error('Error generating commentary for article:', article.title, error);
+            console.error('❌ Error generating commentary for article:', {
+              title: article.title.substring(0, 50),
+              error: error.message
+            });
             return {
               ...article,
-              aiCommentary: null
+              aiCommentary: null,
+              commentaryError: 'Commentary service unavailable'
             };
           }
         })

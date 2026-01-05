@@ -33,7 +33,13 @@ export const generateArticleCommentary = async (article) => {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to generate commentary');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('❌ Commentary generation failed:', {
+        status: response.status,
+        error: errorData.error,
+        message: errorData.message
+      });
+      throw new Error(errorData.message || 'Failed to generate commentary');
     }
 
     const data = await response.json();
