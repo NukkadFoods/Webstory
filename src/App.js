@@ -8,18 +8,23 @@ import ArticlePage from './pages/ArticlePage';
 import CategoryPage from './pages/CategoryPage';
 import SearchPage from './pages/SearchPage';
 import ArticlesPage from './pages/ArticlesPage';
+import ReelsPage from './pages/ReelsPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import { adSenseManager } from './utils/adSenseManager';
 import './App.css';
 
 // Component to handle route changes and reset ads
-function RouteHandler() {
+function RouteHandler({ onLocationChange }) {
   const location = useLocation();
 
   useEffect(() => {
     // Reset ads when route changes to prevent conflicts
     adSenseManager.resetAds();
-  }, [location.pathname]);
+    // Notify parent of location change
+    if (onLocationChange) {
+      onLocationChange(location.pathname);
+    }
+  }, [location.pathname, onLocationChange]);
 
   return (
     <Routes>
@@ -28,25 +33,32 @@ function RouteHandler() {
       <Route path="/category/:category" element={<CategoryPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/articles" element={<ArticlesPage />} />
+      <Route path="/reels" element={<ReelsPage />} />
     </Routes>
   );
 }
 
 function App() {
+  const [currentPath, setCurrentPath] = React.useState('/');
+  
   // Simple app initialization
   useEffect(() => {
     console.log('🚀 Webstory frontend app started');
     console.log('🔧 API URL:', process.env.REACT_APP_API_URL);
   }, []);
 
+  // Check if we're on a page with its own custom header
+  const hasCustomHeader = currentPath === '/' || currentPath.startsWith('/article/');
+
   return (
     <ErrorBoundary>
       <Router>
         <div className="min-h-screen flex flex-col">
-          <Header />
-          <main className="flex-grow container mx-auto px-4 py-8">
+          {/* Hide header on pages that have custom headers */}
+          {!hasCustomHeader && <Header />}
+          <main className={`flex-grow ${!hasCustomHeader ? 'container mx-auto px-4 py-8' : ''}`}>
             <ErrorBoundary>
-              <RouteHandler />
+              <RouteHandler onLocationChange={setCurrentPath} />
             </ErrorBoundary>
           </main>
           <Footer />

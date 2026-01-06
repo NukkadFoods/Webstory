@@ -81,7 +81,16 @@ const NewsCard = ({ article, id, title, abstract, byline, published_date, image,
       console.log(`✅ Found imageUrl: ${articleData.imageUrl}`);
     }
     
-    // PRIORITY 2: Check multimedia array
+    // PRIORITY 2: Check image_url field (newsdata.io format)
+    if (articleData.image_url && articleData.image_url.trim()) {
+      imageOptions.push({
+        url: articleData.image_url,
+        alt: articleData.title || 'News article image'
+      });
+      console.log(`✅ Found image_url: ${articleData.image_url}`);
+    }
+    
+    // PRIORITY 3: Check multimedia array
     if (articleData.multimedia && Array.isArray(articleData.multimedia)) {
       articleData.multimedia.forEach((media, index) => {
         if (media.url && media.url.trim()) {

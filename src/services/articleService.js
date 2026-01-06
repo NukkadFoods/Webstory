@@ -1,5 +1,6 @@
 // Frontend article service - uses API calls to backend with fallback support
 import apiConfig, { makeAPIRequest, getAPIBaseURL } from './apiConfig';
+import browserCache from './browserCache';
 
 // Legacy support - will be dynamically set by apiConfig
 const API_BASE_URL = process.env.REACT_APP_API_URL;
@@ -140,40 +141,20 @@ export const getAllArticles = async (limit = 100) => {
  */
 export const getArticleById = async (id) => {
   try {
-    // First try to find the article in sessionStorage cache
-    const cacheKeys = ['topStories', 'entertainment_articles', 'finance_articles', 'wallstreet_articles'];
-    
-    for (const cacheKey of cacheKeys) {
-      try {
-        const cached = sessionStorage.getItem(cacheKey);
-        if (cached) {
-          const articles = JSON.parse(cached);
-          const found = articles.find(article => 
-            article.id === id || 
-            article.uri === id || 
-            article.url === id ||
-            article.title === decodeURIComponent(id) ||
-            // Also check if URL ends with this ID (for newsletter links)
-            (article.url && article.url.includes(id)) ||
-            // Check if originalNytUrl matches
-            (article.originalNytUrl && article.originalNytUrl.includes(id))
-          );
-          
-          if (found) {
-            console.log(`Found article in ${cacheKey} cache:`, found.title);
-            return {
-              ...found,
-              content: found.content || found.abstract || found.summary || found.lead_paragraph || 'Content available at source URL'
-            };
-          }
-        }
-      } catch (cacheError) {
-        console.warn(`Error checking ${cacheKey} cache:`, cacheError);
-      }
+    // 🚀 3-TIER CACHE ARCHITECTURE
+    // 1. Browser Cache (5min TTL) - Instant response
+    const cachedArticle = browserCache.get(`article:${id}`);
+    if (cachedArticle && cachedArticle.aiCommentary) {
+      console.log(`⚡ Browser cache hit for article ${id}`);
+      return cachedArticle;
     }
     
+    // 2. Redis Cache (30min TTL) - Fast API response
+    // 3. MongoDB (source of truth) - Fallback
+    console.log(`🔄 Fetching fresh article data from Redis/DB for: ${id}`);
+    
     // Use the smart endpoint that handles any identifier format
-    const endpoint = `${API_BASE_URL}/api/articles/${encodeURIComponent(id)}`;
+    const endpoint = `${API_BASE_URL}/api/articles/${encodeURIComponent(id)}?ai=true`;
     
     // If not found in cache, try the API
     const response = await fetch(endpoint);
@@ -196,7 +177,14 @@ export const getArticleById = async (id) => {
       throw new Error('Failed to fetch article');
     }
 
-    return await response.json();
+    const article = await response.json();
+    
+    // 💾 Cache the article in browser for 5 minutes (if it has commentary)
+    if (article && article.aiCommentary) {
+      browserCache.set(`article:${id}`, article);
+    }
+    
+    return article;
   } catch (error) {
     console.error(`Error getting article by ID ${id}:`, error);
     

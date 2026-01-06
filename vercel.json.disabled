@@ -2,6 +2,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build", 
   "installCommand": "npm install",
+  "build": {
+    "env": {
+      "REACT_APP_API_URL": "https://webstory-api.vercel.app"
+    }
+  },
   "headers": [
     {
       "source": "/sitemap.xml",
