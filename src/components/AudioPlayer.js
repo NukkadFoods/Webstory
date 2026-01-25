@@ -193,6 +193,15 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
             }
 
             const blob = await response.blob();
+            console.log('[AudioPlayer] Audio blob received:', { size: blob.size, type: blob.type });
+
+            if (blob.size < 1000) {
+                console.warn('[AudioPlayer] Blob too small, possibly an error message?');
+                // Try to read as text to see if it's an error
+                const text = await blob.text();
+                console.warn('[AudioPlayer] Blob content:', text);
+            }
+
             const url = URL.createObjectURL(blob);
 
             if (audioUrl) URL.revokeObjectURL(audioUrl);
@@ -305,11 +314,10 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
                     <button
                         onClick={handlePlay}
                         disabled={isLoading}
-                        className={`flex items-center justify-center w-14 h-14 rounded-full transition-all ${
-                            isLoading
+                        className={`flex items-center justify-center w-14 h-14 rounded-full transition-all ${isLoading
                                 ? 'bg-gray-700 cursor-wait'
                                 : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/30'
-                        }`}
+                            }`}
                     >
                         {isLoading ? (
                             <Loader size={24} className="animate-spin" />
