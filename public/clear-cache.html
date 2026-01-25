@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Browser Cache - Webstory</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #667eea; margin-top: 0; }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .success {
+            background: #10b981;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        .info {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        .code {
+            background: #1f2937;
+            color: #10b981;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🧹 Clear Webstory Cache</h1>
+        
+        <div class="info">
+            <strong>Why?</strong> Your browser cached old fallback commentary. Clear it to see the new 3-section AI analysis!
+        </div>
+
+        <button onclick="clearAll()">🚀 Clear All Cache & Reload</button>
+        
+        <button onclick="clearStorage()">🗑️ Clear Storage Only</button>
+        
+        <button onclick="hardRefresh()">🔄 Hard Refresh</button>
+
+        <div id="success" class="success"></div>
+
+        <div class="info">
+            <strong>What gets cleared:</strong>
+            <ul>
+                <li>sessionStorage (cached articles)</li>
+                <li>localStorage (saved preferences)</li>
+                <li>Service Workers</li>
+                <li>Browser cache</li>
+            </ul>
+        </div>
+
+        <div class="code">
+            Manual: Cmd/Ctrl + Shift + R
+        </div>
+    </div>
+
+    <script>
+        function showSuccess(message) {
+            const div = document.getElementById('success');
+            div.textContent = '✅ ' + message;
+            div.style.display = 'block';
+            setTimeout(() => {
+                div.style.display = 'none';
+            }, 3000);
+        }
+
+        function clearStorage() {
+            try {
+                // Clear all storage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear specific article caches
+                ['topStories', 'entertainment_articles', 'finance_articles', 
+                 'wallstreet_articles', 'technology_articles', 'business_articles',
+                 'politics_articles', 'world_articles', 'health_articles', 
+                 'sports_articles'].forEach(key => {
+                    sessionStorage.removeItem(key);
+                    localStorage.removeItem(key);
+                });
+
+                showSuccess('Storage cleared! Refresh the page now.');
+                console.log('✅ All storage cleared');
+            } catch (error) {
+                alert('Error clearing storage: ' + error.message);
+            }
+        }
+
+        function hardRefresh() {
+            clearStorage();
+            setTimeout(() => {
+                window.location.href = 'http://localhost:3000';
+            }, 500);
+        }
+
+        function clearAll() {
+            clearStorage();
+            
+            // Clear service workers
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    registrations.forEach(registration => {
+                        registration.unregister();
+                        console.log('✅ Service worker unregistered');
+                    });
+                });
+            }
+
+            // Clear caches
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                        console.log('✅ Cache deleted:', name);
+                    });
+                });
+            }
+
+            showSuccess('Everything cleared! Redirecting to homepage...');
+            
+            setTimeout(() => {
+                window.location.href = 'http://localhost:3000';
+            }, 2000);
+        }
+
+        // Auto-clear on load if ?clear=1 in URL
+        if (window.location.search.includes('clear=1')) {
+            clearAll();
+        }
+    </script>
+</body>
+</html>

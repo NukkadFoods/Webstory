@@ -1,0 +1,42 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://forexyy.com/sitemap.xml
+
+# Allow all major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# Disallow admin or sensitive areas (if any)
+# User-agent: *
+# Disallow: /admin/
+# Disallow: /api/
+
+# Allow crawling of all content including articles and categories
+User-agent: *
+Allow: /article/
+Allow: /category/
+Allow: /search
+Allow: /articles
+
+# Crawl-delay for respectful crawling (optional)
+Crawl-delay: 1
+
+# Host directive (preferred domain)
+Host: forexyy.com
