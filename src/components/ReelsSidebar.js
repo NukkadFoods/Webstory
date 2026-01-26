@@ -3,10 +3,19 @@ import { Link } from 'react-router-dom';
 import { getYouTubeVideos } from '../services/youtubeService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faTimes, faChevronLeft } from '@fortawesome/free-solid-svg-icons';
+import ReelPlayer from './ReelPlayer';
 
 const ReelsSidebar = () => {
   const [reelsData, setReelsData] = useState([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [selectedReelIndex, setSelectedReelIndex] = useState(0);
+
+  const openReelPlayer = (index) => {
+    setSelectedReelIndex(index);
+    setIsPlayerOpen(true);
+    setIsDrawerOpen(false); // Close drawer when player opens
+  };
 
   useEffect(() => {
     const fetchYouTubeReels = async () => {
@@ -61,12 +70,10 @@ const ReelsSidebar = () => {
           {/* Drawer Content */}
           <div className="overflow-y-auto h-[calc(100%-60px)] p-3 space-y-3">
             {reelsData.length > 0 ? reelsData.map((reel, index) => (
-              <a
+              <button
                 key={`reel-mobile-${reel.videoId || reel.id}-${index}`}
-                href={reel.shortsUrl || reel.watchUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block group relative rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all duration-300"
+                onClick={() => openReelPlayer(index)}
+                className="block w-full group relative rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all duration-300 text-left"
                 style={{ height: '180px' }}
               >
                 <img
@@ -76,6 +83,13 @@ const ReelsSidebar = () => {
                 />
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+
+                {/* Play Icon Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full">
+                    <FontAwesomeIcon icon={faPlay} className="text-white text-2xl" />
+                  </div>
+                </div>
 
                 <div className="absolute top-2 right-2 bg-red-600 rounded px-1.5 py-0.5 flex items-center gap-1 text-white text-[8px] font-bold">
                   <FontAwesomeIcon icon={faPlay} className="text-[6px]" /> SHORTS
@@ -88,7 +102,7 @@ const ReelsSidebar = () => {
                     {parseInt(reel.viewCount).toLocaleString()} views
                   </p>
                 </div>
-              </a>
+              </button>
             )) : (
               <div className="text-sm text-gray-500 text-center py-8">
                 Loading reels...
@@ -107,6 +121,14 @@ const ReelsSidebar = () => {
         </div>
       </div>
 
+      {/* Embedded Reel Player */}
+      <ReelPlayer
+        reels={reelsData}
+        initialIndex={selectedReelIndex}
+        isOpen={isPlayerOpen}
+        onClose={() => setIsPlayerOpen(false)}
+      />
+
       {/* Desktop: Vertical Sidebar */}
       <aside className="hidden lg:block w-56 xl:w-64 border-l border-gray-200 bg-white">
         <div className="sticky top-24 h-[calc(100vh-6rem)] px-3">
@@ -119,12 +141,10 @@ const ReelsSidebar = () => {
 
           <div className="space-y-3 overflow-y-auto custom-scrollbar" style={{height: 'calc(100% - 4rem)'}}>
             {reelsData.length > 0 ? reelsData.map((reel, index) => (
-              <a
+              <button
                 key={`reel-${reel.videoId || reel.id}-${index}`}
-                href={reel.shortsUrl || reel.watchUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block group relative rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all duration-300"
+                onClick={() => openReelPlayer(index)}
+                className="block w-full group relative rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all duration-300 text-left"
                 style={{ height: '200px' }}
               >
                 <img
@@ -134,6 +154,13 @@ const ReelsSidebar = () => {
                 />
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+
+                {/* Play Icon Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full">
+                    <FontAwesomeIcon icon={faPlay} className="text-white text-xl" />
+                  </div>
+                </div>
 
                 <div className="absolute top-2 right-2 bg-red-600 rounded px-2 py-0.5 flex items-center gap-1 text-white text-[10px] font-bold">
                   <FontAwesomeIcon icon={faPlay} className="text-[8px]" /> SHORTS
@@ -148,7 +175,7 @@ const ReelsSidebar = () => {
                     {reel.duration && <span>• {reel.duration}</span>}
                   </p>
                 </div>
-              </a>
+              </button>
             )) : (
               <div className="text-sm text-gray-500 text-center py-8">
                 Loading reels...

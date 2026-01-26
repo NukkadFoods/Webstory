@@ -70,21 +70,105 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
 
     const sections = useMemo(() => parseCommentaryIntoSections(commentary), [commentary]);
 
-    // Calculate section timestamps (estimated based on content length)
+    // Calculate spoken weight (duration impact) of text
+    const getSpeechWeight = (text) => {
+        if (!text) return 0;
+        let weight = 0;
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            if (/[A-Z]/.test(char)) {
+                weight += 1.5; // Capitals take slightly longer
+            } else if (/[0-9]/.test(char)) {
+                weight += 1.2; // Numbers take slightly longer
+            } else if ([',', ';', ':'].includes(char)) {
+                weight += 3; // Slight pause
+            } else if (['.', '!', '?'].includes(char)) {
+                weight += 6; // Sentence end pause
+            } else {
+                weight += 1; // Standard char
+            }
+        }
+        return weight;
+    };
+
+    // Calculate section timestamps with intro/outro offset
+    // Uses advanced "Speech Weight" to account for character-level timing differences
     const sectionTimestamps = useMemo(() => {
         if (!sections.length || !duration) return [];
 
-        // Estimate time per section based on content length
-        const totalLength = sections.reduce((sum, s) => sum + s.content.length, 0);
-        let cumulative = 0;
+        const PAUSE_WEIGHTS = {
+            TITLE: 25,   // Pause after title
+            HEADER: 15,  // Pause after section header
+        };
+
+        const introText = title ? `${title}. ` : '';
+        const outroText = " That wraps up this report.";
+
+        // Calculate total weighted length of the entire script
+        const introWeight = getSpeechWeight(introText) + (introText ? PAUSE_WEIGHTS.TITLE : 0);
+        const outroWeight = getSpeechWeight(outroText);
+
+        const sectionsDetails = sections.map(s => {
+            const headerWeight = getSpeechWeight(s.title) + PAUSE_WEIGHTS.HEADER;
+            const contentWeight = getSpeechWeight(s.content);
+            return {
+                headerWeight,
+                contentWeight,
+                totalWeight: headerWeight + contentWeight
+            };
+        });
+
+        const sectionsWeight = sectionsDetails.reduce((sum, s) => sum + s.totalWeight, 0);
+        const totalWeight = introWeight + sectionsWeight + outroWeight;
+
+        // Base time unit (seconds per weight unit)
+        const timePerWeight = duration / totalWeight;
+        const introDuration = introWeight * timePerWeight;
+
+        let cumulativeWeight = 0;
 
         return sections.map((section, idx) => {
-            const start = (cumulative / totalLength) * duration;
-            cumulative += section.content.length;
-            const end = (cumulative / totalLength) * duration;
-            return { start, end, index: idx };
+            const { headerWeight, totalWeight: sectionTotalWeight } = sectionsDetails[idx];
+
+            // Start time for this section (after intro + previous sections)
+            const start = introDuration + (cumulativeWeight * timePerWeight);
+
+            cumulativeWeight += sectionTotalWeight;
+
+            // End time
+            const end = introDuration + (cumulativeWeight * timePerWeight);
+
+            // Content start (after header + pause)
+            const contentStart = start + (headerWeight * timePerWeight);
+
+            return {
+                start,
+                end,
+                index: idx,
+                contentStart
+            };
         });
-    }, [sections, duration]);
+    }, [sections, duration, title]);
+
+    // Calculate intro duration for start offset
+    const introDuration = useMemo(() => {
+        if (!duration) return 0;
+
+        const PAUSE_WEIGHTS = { TITLE: 25, HEADER: 15 };
+        const introText = title ? `${title}. ` : '';
+        const outroText = " That wraps up this report.";
+
+        const introWeight = getSpeechWeight(introText) + (introText ? PAUSE_WEIGHTS.TITLE : 0);
+        const outroWeight = getSpeechWeight(outroText);
+
+        const sectionsWeight = sections.reduce((sum, s) => {
+            return sum + getSpeechWeight(s.title) + PAUSE_WEIGHTS.HEADER + getSpeechWeight(s.content);
+        }, 0);
+
+        const totalWeight = introWeight + sectionsWeight + outroWeight;
+
+        return duration * (introWeight / totalWeight);
+    }, [duration, title, sections]);
 
     // Cleanup blob URL and abort controller on unmount
     useEffect(() => {
@@ -168,30 +252,54 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
             const newSection = sectionTimestamps.findIndex(
                 ts => currentTime >= ts.start && currentTime < ts.end
             );
+
+            const isInIntro = currentTime < introDuration;
+
+            if (isInIntro) {
+                // Still reading title/intro - no highlighting
+                onProgressUpdate?.({
+                    sectionIndex: -1,
+                    sectionProgress: 0,
+                    contentProgress: 0,
+                    isReadingHeader: true,
+                    currentTime,
+                    duration,
+                    isPlaying
+                });
+                return;
+            }
+
             if (newSection !== -1) {
                 if (newSection !== currentSection) {
                     setCurrentSection(newSection);
                     onSectionChange?.(newSection);
                 }
 
-                // Calculate progress within current section (0 to 1)
                 const ts = sectionTimestamps[newSection];
-                const sectionDuration = ts.end - ts.start;
-                const sectionProgress = sectionDuration > 0
-                    ? (currentTime - ts.start) / sectionDuration
+
+                // Check if still reading section header
+                const isReadingHeader = currentTime < ts.contentStart;
+
+                // Calculate progress within content only (not header)
+                // contentStart is adjusted to include the header pause, so actual content reading starts there
+                const contentDuration = ts.end - ts.contentStart;
+                const contentProgress = contentDuration > 0 && !isReadingHeader
+                    ? (currentTime - ts.contentStart) / contentDuration
                     : 0;
 
                 // Report progress to parent for word highlighting
                 onProgressUpdate?.({
                     sectionIndex: newSection,
-                    sectionProgress: Math.min(Math.max(sectionProgress, 0), 1),
+                    sectionProgress: Math.min(Math.max(contentProgress, 0), 1),
+                    contentProgress: Math.min(Math.max(contentProgress, 0), 1),
+                    isReadingHeader,
                     currentTime,
                     duration,
                     isPlaying
                 });
             }
         }
-    }, [currentTime, duration, sectionTimestamps, currentSection, onSectionChange, onProgressUpdate, isPlaying]);
+    }, [currentTime, duration, sectionTimestamps, introDuration, currentSection, onSectionChange, onProgressUpdate, isPlaying]);
 
     const handleTimeUpdate = useCallback(() => {
         if (audioRef.current) {
@@ -396,10 +504,10 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                         onClick={handlePlay}
                         disabled={isLoading}
                         className={`flex items-center justify-center w-14 h-14 rounded-full transition-all ${isLoading
-                                ? 'bg-gray-700 cursor-wait'
-                                : isPreloaded && !isPlaying
-                                    ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white shadow-lg shadow-green-500/30 animate-pulse'
-                                    : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/30'
+                            ? 'bg-gray-700 cursor-wait'
+                            : isPreloaded && !isPlaying
+                                ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white shadow-lg shadow-green-500/30 animate-pulse'
+                                : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/30'
                             }`}
                     >
                         {isLoading ? (
