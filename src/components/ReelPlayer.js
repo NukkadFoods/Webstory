@@ -230,7 +230,7 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                                 {currentReel.title}
                             </h3>
                             <a
-                                href="https://www.youtube.com/@forexyy?sub_confirmation=1"
+                                href="https://www.youtube.com/@ForexyyNewsletter?sub_confirmation=1"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase hover:bg-red-700 transition pointer-events-auto"
