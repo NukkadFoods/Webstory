@@ -281,26 +281,28 @@ const ArticlePage = () => {
       <Header />
 
       {/* Main 2-Column Layout */}
-      <main className="w-full pl-4 pr-0 py-8">
-        <div className="grid grid-cols-[1fr_auto] gap-6">
+      <main className="w-full px-4 py-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-[1fr_auto] gap-6">
 
           {/* MAIN CONTENT - takes remaining space */}
-          <article className="min-w-0">
+          <article className="min-w-0 max-w-4xl">
 
             <header className="mb-8">
               <div className="flex gap-2 mb-4">
                 <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
                 <span className="text-gray-400 text-xs py-1"><FontAwesomeIcon icon={faClock} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight mb-6 font-serif">{article.title}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 leading-tight mb-6 font-serif">{article.title}</h1>
 
-              {/* Main Image */}
-              <div className="rounded-xl overflow-hidden shadow-sm mb-8 bg-gray-100">
-                <img
-                  src={article.imageUrl || article.multimedia?.[0]?.url}
-                  alt={article.title}
-                  className="w-full h-auto object-cover"
-                />
+              {/* Main Image - Constrained Container */}
+              <div className="max-w-3xl">
+                <div className="rounded-xl overflow-hidden shadow-sm mb-8 bg-gray-100 aspect-video">
+                  <img
+                    src={article.imageUrl || article.multimedia?.[0]?.url}
+                    alt={article.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
             </header>
 
