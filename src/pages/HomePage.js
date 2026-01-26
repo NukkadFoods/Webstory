@@ -6,6 +6,7 @@ import NewsGrid from '../components/NewsGrid';
 import FluidAd from '../components/FluidAd';
 import Header from '../components/Header';
 import ReelsSidebar from '../components/ReelsSidebar';
+import NewsletterPopup from '../components/NewsletterPopup';
 
 // Icons
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -287,6 +288,9 @@ const HomePage = () => {
           <ReelsSidebar />
         </div>
       </div>
+
+      {/* Newsletter Popup */}
+      <NewsletterPopup />
     </div>
   );
 };

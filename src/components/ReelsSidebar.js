@@ -11,19 +11,42 @@ const ReelsSidebar = () => {
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [selectedReelIndex, setSelectedReelIndex] = useState(0);
 
+  const [nextPageToken, setNextPageToken] = useState(null);
+  const [loading, setLoading] = useState(false);
+
   const openReelPlayer = (index) => {
     setSelectedReelIndex(index);
     setIsPlayerOpen(true);
     setIsDrawerOpen(false); // Close drawer when player opens
   };
 
+  const fetchYouTubeReels = async (token = '') => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const { videos, nextPageToken: newToken } = await getYouTubeVideos(15, token);
+      if (token) {
+        setReelsData(prev => [...prev, ...videos]);
+      } else {
+        setReelsData(videos);
+      }
+      setNextPageToken(newToken);
+    } catch (err) {
+      console.error('Failed to load reels', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchYouTubeReels = async () => {
-      const videos = await getYouTubeVideos(15);
-      setReelsData(videos);
-    };
     fetchYouTubeReels();
   }, []);
+
+  const loadMoreReels = () => {
+    if (nextPageToken) {
+      fetchYouTubeReels(nextPageToken);
+    }
+  };
 
   return (
     <>
@@ -50,9 +73,8 @@ const ReelsSidebar = () => {
 
         {/* Drawer Panel */}
         <div
-          className={`fixed top-0 right-0 h-full w-[75%] max-w-[280px] bg-white z-50 shadow-2xl transform transition-transform duration-300 ease-out ${
-            isDrawerOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
+          className={`fixed top-0 right-0 h-full w-[75%] max-w-[280px] bg-white z-50 shadow-2xl transform transition-transform duration-300 ease-out ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
         >
           {/* Drawer Header */}
           <div className="sticky top-0 bg-gradient-to-r from-pink-600 to-pink-500 p-4 flex items-center justify-between">
@@ -109,13 +131,23 @@ const ReelsSidebar = () => {
               </div>
             )}
 
-            {/* View All Link */}
+            {/* View All / Load More Link */}
+            {nextPageToken && (
+              <button
+                onClick={loadMoreReels}
+                disabled={loading}
+                className="block w-full text-center py-3 bg-gray-100 text-gray-600 font-semibold rounded-lg hover:bg-gray-200 transition text-xs"
+              >
+                {loading ? 'Loading...' : 'Load More Reels'}
+              </button>
+            )}
+
             <Link
               to="/reels"
-              className="block text-center py-3 bg-pink-50 text-pink-600 font-semibold rounded-lg hover:bg-pink-100 transition"
+              className="block text-center py-3 bg-pink-50 text-pink-600 font-semibold rounded-lg hover:bg-pink-100 transition mt-2"
               onClick={() => setIsDrawerOpen(false)}
             >
-              View All Reels
+              View Full Page
             </Link>
           </div>
         </div>
@@ -127,6 +159,8 @@ const ReelsSidebar = () => {
         initialIndex={selectedReelIndex}
         isOpen={isPlayerOpen}
         onClose={() => setIsPlayerOpen(false)}
+        onLoadMore={loadMoreReels}
+        hasMore={!!nextPageToken}
       />
 
       {/* Desktop: Vertical Sidebar */}
@@ -139,7 +173,7 @@ const ReelsSidebar = () => {
             <Link to="/reels" className="text-xs text-blue-600 cursor-pointer font-medium">View All</Link>
           </div>
 
-          <div className="space-y-3 overflow-y-auto custom-scrollbar" style={{height: 'calc(100% - 4rem)'}}>
+          <div className="space-y-3 overflow-y-auto custom-scrollbar" style={{ height: 'calc(100% - 4rem)' }}>
             {reelsData.length > 0 ? reelsData.map((reel, index) => (
               <button
                 key={`reel-${reel.videoId || reel.id}-${index}`}
