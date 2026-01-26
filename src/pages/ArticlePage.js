@@ -282,8 +282,8 @@ const ArticlePage = () => {
       <Header />
 
       {/* Main 2-Column Layout */}
-      <main className="w-full px-4 py-8">
-        <div className="flex flex-col lg:grid lg:grid-cols-[1fr_auto] gap-6">
+      <main className="w-full px-4 lg:pl-4 lg:pr-0 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6">
 
           {/* MAIN CONTENT - takes remaining space */}
           <article className="min-w-0 max-w-4xl">
