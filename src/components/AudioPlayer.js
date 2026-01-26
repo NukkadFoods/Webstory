@@ -54,7 +54,7 @@ const formatTime = (seconds) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const AudioPlayer = ({ commentary, title, onSectionChange }) => {
+const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) => {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -162,18 +162,36 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
         preloadAudio();
     }, [commentary, title]);
 
-    // Update current section based on audio progress
+    // Update current section and progress based on audio progress
     useEffect(() => {
         if (duration > 0 && sectionTimestamps.length > 0) {
             const newSection = sectionTimestamps.findIndex(
                 ts => currentTime >= ts.start && currentTime < ts.end
             );
-            if (newSection !== -1 && newSection !== currentSection) {
-                setCurrentSection(newSection);
-                onSectionChange?.(newSection);
+            if (newSection !== -1) {
+                if (newSection !== currentSection) {
+                    setCurrentSection(newSection);
+                    onSectionChange?.(newSection);
+                }
+
+                // Calculate progress within current section (0 to 1)
+                const ts = sectionTimestamps[newSection];
+                const sectionDuration = ts.end - ts.start;
+                const sectionProgress = sectionDuration > 0
+                    ? (currentTime - ts.start) / sectionDuration
+                    : 0;
+
+                // Report progress to parent for word highlighting
+                onProgressUpdate?.({
+                    sectionIndex: newSection,
+                    sectionProgress: Math.min(Math.max(sectionProgress, 0), 1),
+                    currentTime,
+                    duration,
+                    isPlaying
+                });
             }
         }
-    }, [currentTime, duration, sectionTimestamps, currentSection, onSectionChange]);
+    }, [currentTime, duration, sectionTimestamps, currentSection, onSectionChange, onProgressUpdate, isPlaying]);
 
     const handleTimeUpdate = useCallback(() => {
         if (audioRef.current) {
@@ -295,6 +313,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
         setIsPlaying(false);
         setCurrentSection(0);
         onSectionChange?.(-1);
+        onProgressUpdate?.({ sectionIndex: -1, sectionProgress: 0, isPlaying: false });
     };
 
     if (!commentary) return null;

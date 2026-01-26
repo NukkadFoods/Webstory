@@ -24,6 +24,7 @@ const ArticlePage = () => {
   const [displayedCommentary, setDisplayedCommentary] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [audioSection, setAudioSection] = useState(-1); // -1 = not playing, 0+ = section index
+  const [audioProgress, setAudioProgress] = useState({ sectionIndex: -1, sectionProgress: 0, isPlaying: false });
 
   // Categories for header navigation
   const categories = [
@@ -312,6 +313,7 @@ const ArticlePage = () => {
                 commentary={article.aiCommentary}
                 title={article.title}
                 onSectionChange={(idx) => setAudioSection(idx)}
+                onProgressUpdate={(progress) => setAudioProgress(progress)}
               />
             )}
 
@@ -423,14 +425,81 @@ const ArticlePage = () => {
                             </h4>
                           </div>
 
-                          {/* Section Content */}
+                          {/* Section Content with Sentence Highlighting */}
                           <div className={`pl-8 pr-4 transition-all duration-300 ${
                             isActiveSection ? 'opacity-100' : isPastSection ? 'opacity-70' : 'opacity-50'
                           }`}>
                             <p className={`leading-relaxed text-base ${
-                              isActiveSection ? 'text-gray-900 font-medium' : 'text-gray-700'
+                              isActiveSection ? 'text-gray-900' : 'text-gray-700'
                             }`}>
-                              {section.content}
+                              {(() => {
+                                // Split content into sentences for highlighting
+                                const sentences = section.content
+                                  .split(/(?<=[.!?])\s+/)
+                                  .filter(s => s.trim());
+
+                                if (!isActiveSection || !audioProgress.isPlaying || sentences.length === 0) {
+                                  return section.content;
+                                }
+
+                                // Calculate which sentence is currently being read
+                                const currentSentenceIndex = Math.floor(audioProgress.sectionProgress * sentences.length);
+                                const progressInSentence = (audioProgress.sectionProgress * sentences.length) % 1;
+
+                                return sentences.map((sentence, sentenceIdx) => {
+                                  const isCurrentSentence = sentenceIdx === currentSentenceIndex;
+                                  const isPastSentence = sentenceIdx < currentSentenceIndex;
+
+                                  if (isCurrentSentence) {
+                                    // Split current sentence into words for word-level highlighting
+                                    const words = sentence.split(/\s+/);
+                                    const currentWordIndex = Math.floor(progressInSentence * words.length);
+
+                                    return (
+                                      <span
+                                        key={sentenceIdx}
+                                        className="inline bg-gradient-to-r from-blue-50 to-indigo-50 px-1 py-0.5 rounded-md border-l-4 border-blue-500"
+                                      >
+                                        {words.map((word, wordIdx) => {
+                                          const isCurrentWord = wordIdx === currentWordIndex;
+                                          const isPastWord = wordIdx < currentWordIndex;
+
+                                          return (
+                                            <span
+                                              key={wordIdx}
+                                              className={`transition-all duration-100 inline-block ${
+                                                isCurrentWord
+                                                  ? 'text-blue-700 font-bold scale-110 bg-blue-200 px-1 rounded mx-0.5'
+                                                  : isPastWord
+                                                    ? 'text-gray-800 font-semibold'
+                                                    : 'text-gray-600'
+                                              }`}
+                                              style={{
+                                                transform: isCurrentWord ? 'translateY(-1px)' : 'none'
+                                              }}
+                                            >
+                                              {word}{' '}
+                                            </span>
+                                          );
+                                        })}
+                                      </span>
+                                    );
+                                  }
+
+                                  return (
+                                    <span
+                                      key={sentenceIdx}
+                                      className={`transition-all duration-300 ${
+                                        isPastSentence
+                                          ? 'text-gray-900 font-medium'
+                                          : 'text-gray-500'
+                                      }`}
+                                    >
+                                      {sentence}{' '}
+                                    </span>
+                                  );
+                                });
+                              })()}
                               {isTyping && idx === 2 && (
                                 <span className="inline-block w-0.5 h-5 bg-blue-600 ml-1 animate-pulse"></span>
                               )}
