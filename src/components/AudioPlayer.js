@@ -64,6 +64,9 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
     const [duration, setDuration] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [currentSection, setCurrentSection] = useState(0);
+    const [isPreloaded, setIsPreloaded] = useState(false);
+    const preloadStartedRef = useRef(false);
+    const abortControllerRef = useRef(null);
 
     const sections = useMemo(() => parseCommentaryIntoSections(commentary), [commentary]);
 
@@ -83,11 +86,14 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
         });
     }, [sections, duration]);
 
-    // Cleanup blob URL on unmount
+    // Cleanup blob URL and abort controller on unmount
     useEffect(() => {
         return () => {
             if (audioUrl) {
                 URL.revokeObjectURL(audioUrl);
+            }
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
             }
         };
     }, [audioUrl]);
@@ -100,7 +106,61 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
         setCurrentTime(0);
         setDuration(0);
         setCurrentSection(0);
+        setIsPreloaded(false);
+        preloadStartedRef.current = false;
     }, [commentary]);
+
+    // Preload audio as soon as component mounts (user lands on page)
+    useEffect(() => {
+        if (!commentary || preloadStartedRef.current) return;
+
+        preloadStartedRef.current = true;
+        abortControllerRef.current = new AbortController();
+
+        const preloadAudio = async () => {
+            try {
+                console.log('[AudioPlayer] Starting audio preload on page load...');
+
+                const response = await fetch(`${API_BASE_URL}/api/tts/speak`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: commentary, title }),
+                    signal: abortControllerRef.current.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+
+                if (blob.size < 1000) {
+                    console.warn('[AudioPlayer] Preload: blob too small');
+                    return;
+                }
+
+                const url = URL.createObjectURL(blob);
+                setAudioUrl(url);
+
+                // Set audio source so it's ready to play instantly
+                if (audioRef.current) {
+                    audioRef.current.src = url;
+                }
+
+                setIsPreloaded(true);
+                console.log('[AudioPlayer] Audio preloaded and ready!');
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    console.log('[AudioPlayer] Preload aborted (user navigated away)');
+                } else {
+                    console.error('[AudioPlayer] Preload error:', err);
+                    // Don't show error - will retry on play click
+                }
+            }
+        };
+
+        preloadAudio();
+    }, [commentary, title]);
 
     // Update current section based on audio progress
     useEffect(() => {
@@ -165,9 +225,10 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
             return;
         }
 
-        // If we already have the audio loaded, just play it
+        // If audio is preloaded, play instantly
         if (audioUrl && audioRef.current) {
             try {
+                console.log('[AudioPlayer] Playing preloaded audio instantly!');
                 await audioRef.current.play();
                 setIsPlaying(true);
                 onSectionChange?.(currentSection);
@@ -177,7 +238,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
             }
         }
 
-        // Fetch new audio stream
+        // Fallback: fetch audio if preload failed or not ready yet
         setIsLoading(true);
         setError(null);
 
@@ -198,7 +259,6 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
 
             if (blob.size < 1000) {
                 console.warn('[AudioPlayer] Blob too small, possibly an error message?');
-                // Try to read as text to see if it's an error
                 const text = await blob.text();
                 console.warn('[AudioPlayer] Blob content:', text);
             }
@@ -207,6 +267,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
 
             if (audioUrl) URL.revokeObjectURL(audioUrl);
             setAudioUrl(url);
+            setIsPreloaded(true);
 
             if (audioRef.current) {
                 audioRef.current.src = url;
@@ -317,7 +378,9 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
                         disabled={isLoading}
                         className={`flex items-center justify-center w-14 h-14 rounded-full transition-all ${isLoading
                                 ? 'bg-gray-700 cursor-wait'
-                                : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/30'
+                                : isPreloaded && !isPlaying
+                                    ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white shadow-lg shadow-green-500/30 animate-pulse'
+                                    : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/30'
                             }`}
                     >
                         {isLoading ? (
@@ -396,6 +459,18 @@ const AudioPlayer = ({ commentary, title, onSectionChange }) => {
                 {isLoading && (
                     <div className="mt-3 text-blue-400 text-sm text-center">
                         Generating audio broadcast...
+                    </div>
+                )}
+                {!isLoading && !isPlaying && isPreloaded && (
+                    <div className="mt-3 text-green-400 text-sm text-center flex items-center justify-center gap-2">
+                        <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                        Ready to play
+                    </div>
+                )}
+                {!isLoading && !isPlaying && !isPreloaded && !error && (
+                    <div className="mt-3 text-gray-400 text-sm text-center flex items-center justify-center gap-2">
+                        <Loader size={14} className="animate-spin" />
+                        Preparing audio...
                     </div>
                 )}
 
