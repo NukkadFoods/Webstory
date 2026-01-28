@@ -54,10 +54,11 @@ const formatTime = (seconds) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, compact = false }) => {
+const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, autoplay = true }) => {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const playerIdRef = useRef(`audio-player-${Date.now()}`);
+    const autoplayAttemptedRef = useRef(false);
 
     // Listen for global stop event (when another media starts playing)
     useEffect(() => {
@@ -209,6 +210,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
         setCurrentSection(0);
         setIsPreloaded(false);
         preloadStartedRef.current = false;
+        autoplayAttemptedRef.current = false;
     }, [commentary]);
 
     // Preload audio as soon as component mounts (user lands on page)
@@ -243,13 +245,48 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
                 const url = URL.createObjectURL(blob);
                 setAudioUrl(url);
 
-                // Set audio source so it's ready to play instantly
+                // Set audio source and WAIT for it to be ready to play
                 if (audioRef.current) {
                     audioRef.current.src = url;
+
+                    // Wait for audio to be buffered and ready to play instantly
+                    await new Promise((resolve, reject) => {
+                        const audio = audioRef.current;
+                        if (!audio) {
+                            reject(new Error('Audio element not available'));
+                            return;
+                        }
+
+                        const onCanPlayThrough = () => {
+                            audio.removeEventListener('canplaythrough', onCanPlayThrough);
+                            audio.removeEventListener('error', onError);
+                            console.log('[AudioPlayer] Audio buffered and ready!');
+                            resolve();
+                        };
+
+                        const onError = (e) => {
+                            audio.removeEventListener('canplaythrough', onCanPlayThrough);
+                            audio.removeEventListener('error', onError);
+                            reject(new Error('Audio load error'));
+                        };
+
+                        // Check if already ready (readyState 4 = HAVE_ENOUGH_DATA)
+                        if (audio.readyState >= 4) {
+                            console.log('[AudioPlayer] Audio already buffered');
+                            resolve();
+                            return;
+                        }
+
+                        audio.addEventListener('canplaythrough', onCanPlayThrough);
+                        audio.addEventListener('error', onError);
+
+                        // Force load
+                        audio.load();
+                    });
                 }
 
                 setIsPreloaded(true);
-                console.log('[AudioPlayer] Audio preloaded and ready!');
+                console.log('[AudioPlayer] Audio preloaded and ready to play instantly!');
             } catch (err) {
                 if (err.name === 'AbortError') {
                     console.log('[AudioPlayer] Preload aborted (user navigated away)');
@@ -262,6 +299,35 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
 
         preloadAudio();
     }, [commentary, title]);
+
+    // Autoplay when audio is preloaded (helps new users discover the feature)
+    useEffect(() => {
+        if (!autoplay || !isPreloaded || autoplayAttemptedRef.current) return;
+        if (!audioRef.current || isPlaying) return;
+
+        autoplayAttemptedRef.current = true;
+
+        const attemptAutoplay = async () => {
+            try {
+                // Stop any other playing media first
+                window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
+
+                console.log('[AudioPlayer] Attempting autoplay...');
+                await audioRef.current.play();
+                setIsPlaying(true);
+                onSectionChange?.(0);
+                console.log('[AudioPlayer] Autoplay successful!');
+            } catch (err) {
+                // Autoplay was blocked by browser policy - this is normal
+                console.log('[AudioPlayer] Autoplay blocked by browser:', err.name);
+                // Don't show error - user can click play manually
+            }
+        };
+
+        // Small delay to ensure everything is ready
+        const timer = setTimeout(attemptAutoplay, 300);
+        return () => clearTimeout(timer);
+    }, [autoplay, isPreloaded, isPlaying, onSectionChange]);
 
     // Update current section and progress based on audio progress
     useEffect(() => {
@@ -368,8 +434,8 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
             return;
         }
 
-        // If audio is preloaded, play instantly
-        if (audioUrl && audioRef.current) {
+        // If audio is preloaded and ready, play instantly
+        if (audioUrl && audioRef.current && isPreloaded) {
             try {
                 // Stop any other playing media first
                 window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
@@ -381,6 +447,12 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
                 return;
             } catch (err) {
                 console.error('[AudioPlayer] Play error:', err);
+                // If autoplay was blocked, show error instead of re-fetching
+                if (err.name === 'NotAllowedError') {
+                    setError('Please interact with the page first to enable audio');
+                    return;
+                }
+                // For other errors, continue to fallback fetch
             }
         }
 
@@ -451,173 +523,62 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
 
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-    // Compact mode - minimal UI
-    if (compact) {
-        return (
-            <div className="w-full">
-                <div className="bg-transparent rounded-lg px-3 py-2">
-                    {/* Compact Controls Row */}
-                    <div className="flex items-center gap-3">
-                        {/* Small Avatar */}
-                        <div className="relative flex-shrink-0">
-                            <img
-                                src="/images/rachel-anderson.jpeg"
-                                alt="Rachel Anderson"
-                                className="w-8 h-8 rounded-full object-cover border border-blue-500"
-                                onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'flex';
-                                }}
-                            />
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-bold text-xs hidden">
-                                RA
-                            </div>
-                            {isPlaying && (
-                                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border border-gray-900 animate-pulse"></span>
-                            )}
-                        </div>
-
-                        {/* Play/Pause Button - Compact */}
-                        <button
-                            onClick={handlePlay}
-                            disabled={isLoading || (!isPreloaded && !isPlaying)}
-                            className={`flex items-center justify-center w-10 h-10 rounded-full transition-all flex-shrink-0 ${
-                                isLoading || (!isPreloaded && !isPlaying && !error)
-                                    ? 'bg-gray-600 cursor-not-allowed opacity-70'
-                                    : isPreloaded && !isPlaying
-                                        ? 'bg-green-600 hover:bg-green-500 text-white animate-pulse'
-                                        : 'bg-blue-600 hover:bg-blue-500 text-white'
-                            }`}
-                        >
-                            {isLoading || (!isPreloaded && !isPlaying && !error) ? (
-                                <Loader size={18} className="animate-spin" />
-                            ) : isPlaying ? (
-                                <Pause size={18} fill="currentColor" />
-                            ) : (
-                                <Play size={18} fill="currentColor" className="ml-0.5" />
-                            )}
-                        </button>
-
-                        {/* Seekbar - Compact */}
-                        <div className="flex-1">
-                            <div className="relative h-2 bg-gray-700 rounded-full">
-                                <div
-                                    className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
-                                    style={{ width: `${progress}%` }}
-                                />
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max={duration || 0}
-                                    value={currentTime}
-                                    onChange={handleSeek}
-                                    className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
-                                    disabled={!audioUrl}
-                                />
-                            </div>
-                            <div className="flex justify-between mt-0.5">
-                                <span className="text-gray-400 text-[10px] font-mono">{formatTime(currentTime)}</span>
-                                <span className="text-gray-500 text-[10px] font-mono">{formatTime(duration)}</span>
-                            </div>
-                        </div>
-
-                        {/* Mute Button - Compact */}
-                        <button onClick={toggleMute} className="p-1 text-gray-400 hover:text-white transition flex-shrink-0">
-                            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                        </button>
-
-                        {/* Live Badge - Compact */}
-                        {isPlaying && (
-                            <div className="flex items-center gap-1 bg-red-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
-                                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
-                                <span className="text-red-400 text-[10px] font-bold uppercase">Live</span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Status Message - Compact */}
-                    {!isLoading && !isPlaying && !isPreloaded && !error && (
-                        <div className="mt-1 text-gray-400 text-[10px] text-center flex items-center justify-center gap-1">
-                            <Loader size={10} className="animate-spin" />
-                            Preparing audio...
-                        </div>
-                    )}
-
-                    {/* Hidden Audio Element */}
-                    <audio
-                        ref={audioRef}
-                        onTimeUpdate={handleTimeUpdate}
-                        onLoadedMetadata={handleLoadedMetadata}
-                        onEnded={handleEnded}
-                        onError={() => {
-                            setIsLoading(false);
-                            setIsPlaying(false);
-                            setError('Audio playback error');
-                        }}
-                        preload="metadata"
-                        className="hidden"
-                    />
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="w-full max-w-2xl mx-auto my-6">
-            {/* Main Player Card */}
-            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl p-5 shadow-2xl border border-gray-700">
+        <div className="w-full">
+            {/* Main Player Card - Compact */}
+            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-xl p-3 shadow-xl border border-gray-700">
 
-                {/* Reporter Info Row */}
-                <div className="flex items-center gap-4 mb-4">
-                    {/* Avatar */}
-                    <div className="relative">
+                {/* Reporter Info Row - Compact */}
+                <div className="flex items-center gap-3 mb-3">
+                    {/* Avatar - Smaller */}
+                    <div className="relative flex-shrink-0">
                         <img
                             src="/images/rachel-anderson.jpeg"
                             alt="Rachel Anderson"
-                            className="w-14 h-14 rounded-full object-cover shadow-lg border-2 border-blue-500"
+                            className="w-10 h-10 rounded-full object-cover shadow-lg border-2 border-blue-500"
                             onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
                             }}
                         />
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-bold text-xl shadow-lg hidden">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-bold text-sm shadow-lg hidden">
                             RA
                         </div>
                         {isPlaying && (
-                            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse"></span>
+                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse"></span>
                         )}
                     </div>
 
-                    {/* Name & Title */}
-                    <div className="flex-1">
-                        <h3 className="text-white font-bold text-lg leading-tight">
+                    {/* Name & Title - Compact */}
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-bold text-sm leading-tight">
                             Rachel Anderson
                         </h3>
-                        <p className="text-blue-400 text-xs font-medium uppercase tracking-wider">
-                            Senior Forexyy Newsletter Reporter
+                        <p className="text-blue-400 text-[10px] font-medium uppercase tracking-wider truncate">
+                            Senior Forexyy Reporter
                         </p>
                     </div>
 
                     {/* Live Badge */}
                     {isPlaying && (
-                        <div className="flex items-center gap-2 bg-red-500/20 px-3 py-1 rounded-full">
-                            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                            <span className="text-red-400 text-xs font-bold uppercase">Live</span>
+                        <div className="flex items-center gap-1.5 bg-red-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
+                            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
+                            <span className="text-red-400 text-[10px] font-bold uppercase">Live</span>
                         </div>
                     )}
                 </div>
 
-                {/* Clickable Section Buttons */}
+                {/* Clickable Section Buttons - Compact */}
                 {sections.length > 1 && (
-                    <div className="mb-4 flex gap-2">
+                    <div className="mb-2 flex gap-1.5">
                         {sections.map((section, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => jumpToSection(idx)}
                                 disabled={!audioUrl}
-                                className={`flex-1 text-center py-2 px-2 rounded-lg text-xs font-medium transition-all cursor-pointer
+                                className={`flex-1 text-center py-1.5 px-1.5 rounded-md text-[10px] font-medium transition-all cursor-pointer
                                     ${idx === currentSection
-                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
                                         : idx < currentSection
                                             ? 'bg-blue-900/50 text-blue-300 hover:bg-blue-800/50'
                                             : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50'
@@ -631,13 +592,13 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
                     </div>
                 )}
 
-                {/* Controls Row */}
-                <div className="flex items-center gap-4">
-                    {/* Play/Pause Button - Disabled during loading OR preparing (not preloaded yet) */}
+                {/* Controls Row - Compact */}
+                <div className="flex items-center gap-3">
+                    {/* Play/Pause Button - Smaller */}
                     <button
                         onClick={handlePlay}
                         disabled={isLoading || (!isPreloaded && !isPlaying)}
-                        className={`flex items-center justify-center w-14 h-14 rounded-full transition-all ${
+                        className={`flex items-center justify-center w-11 h-11 rounded-full transition-all flex-shrink-0 ${
                             isLoading || (!isPreloaded && !isPlaying && !error)
                                 ? 'bg-gray-600 cursor-not-allowed opacity-70'
                                 : isPreloaded && !isPlaying
@@ -646,18 +607,18 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
                         }`}
                     >
                         {isLoading || (!isPreloaded && !isPlaying && !error) ? (
-                            <Loader size={24} className="animate-spin" />
+                            <Loader size={20} className="animate-spin" />
                         ) : isPlaying ? (
-                            <Pause size={24} fill="currentColor" />
+                            <Pause size={20} fill="currentColor" />
                         ) : (
-                            <Play size={24} fill="currentColor" className="ml-1" />
+                            <Play size={20} fill="currentColor" className="ml-0.5" />
                         )}
                     </button>
 
                     {/* Seekbar & Time */}
                     <div className="flex-1">
                         {/* Seekbar with Section Markers */}
-                        <div className="relative h-3 bg-gray-700 rounded-full overflow-visible">
+                        <div className="relative h-2 bg-gray-700 rounded-full overflow-visible">
                             {/* Progress Fill */}
                             <div
                                 className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all"
@@ -670,7 +631,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
                                     <button
                                         key={idx}
                                         onClick={() => jumpToSection(idx)}
-                                        className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-yellow-400 rounded-full border-2 border-gray-900 hover:scale-125 transition-transform z-10 cursor-pointer"
+                                        className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-yellow-400 rounded-full border border-gray-900 hover:scale-125 transition-transform z-10 cursor-pointer"
                                         style={{ left: `${(ts.start / duration) * 100}%` }}
                                         title={`Jump to ${sections[idx]?.title}`}
                                         disabled={!audioUrl}
@@ -691,11 +652,11 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
                         </div>
 
                         {/* Timestamps */}
-                        <div className="flex justify-between mt-1">
-                            <span className="text-gray-400 text-xs font-mono">
+                        <div className="flex justify-between mt-0.5">
+                            <span className="text-gray-400 text-[10px] font-mono">
                                 {formatTime(currentTime)}
                             </span>
-                            <span className="text-gray-500 text-xs font-mono">
+                            <span className="text-gray-500 text-[10px] font-mono">
                                 {formatTime(duration)}
                             </span>
                         </div>
@@ -704,35 +665,27 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
                     {/* Mute Button */}
                     <button
                         onClick={toggleMute}
-                        className="p-2 text-gray-400 hover:text-white transition"
+                        className="p-1.5 text-gray-400 hover:text-white transition flex-shrink-0"
                     >
-                        {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                        {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                     </button>
                 </div>
 
-                {/* Error Message */}
-                {error && (
-                    <div className="mt-3 text-red-400 text-sm text-center bg-red-500/10 py-2 rounded-lg">
-                        {error}
-                    </div>
-                )}
-
-                {/* Status Message */}
-                {isLoading && (
-                    <div className="mt-3 text-blue-400 text-sm text-center">
-                        Generating audio broadcast...
-                    </div>
-                )}
-                {!isLoading && !isPlaying && isPreloaded && (
-                    <div className="mt-3 text-green-400 text-sm text-center flex items-center justify-center gap-2">
-                        <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                        Ready to play
-                    </div>
-                )}
-                {!isLoading && !isPlaying && !isPreloaded && !error && (
-                    <div className="mt-3 text-gray-400 text-sm text-center flex items-center justify-center gap-2">
-                        <Loader size={14} className="animate-spin" />
-                        Preparing audio...
+                {/* Status Message - Compact inline */}
+                {(error || isLoading || (!isPlaying && !isPreloaded)) && (
+                    <div className="mt-2 text-center">
+                        {error && (
+                            <span className="text-red-400 text-[10px]">{error}</span>
+                        )}
+                        {isLoading && (
+                            <span className="text-blue-400 text-[10px]">Generating audio...</span>
+                        )}
+                        {!isLoading && !isPlaying && !isPreloaded && !error && (
+                            <span className="text-gray-400 text-[10px] flex items-center justify-center gap-1">
+                                <Loader size={10} className="animate-spin" />
+                                Preparing audio...
+                            </span>
+                        )}
                     </div>
                 )}
 
@@ -747,16 +700,9 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
                         setIsPlaying(false);
                         setError('Audio playback error');
                     }}
-                    preload="metadata"
+                    preload="auto"
                     className="hidden"
                 />
-            </div>
-
-            {/* Article Title */}
-            <div className="mt-3 text-center">
-                <p className="text-gray-500 text-xs">
-                    Now covering: <span className="text-gray-300">{title || 'Breaking News'}</span>
-                </p>
             </div>
         </div>
     );

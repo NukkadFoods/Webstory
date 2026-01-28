@@ -27,31 +27,40 @@ const ArticlePage = () => {
   const [audioProgress, setAudioProgress] = useState({ sectionIndex: -1, sectionProgress: 0, isPlaying: false });
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [showReels, setShowReels] = useState(false);
-  const [expandedPlayer, setExpandedPlayer] = useState(false);
 
   // Refs for auto-scroll functionality
   const highlightedWordRef = useRef(null);
   const commentaryContainerRef = useRef(null);
+  const commentaryScrollRef = useRef(null); // Scrollable container for commentary
 
-  // Auto-scroll to highlighted word when audio is playing
+  // Auto-scroll to highlighted word when audio is playing - ONLY within commentary container
   const scrollToHighlightedWord = useCallback(() => {
     if (!autoScrollEnabled || !audioProgress.isPlaying) return;
 
-    // Try ref first, then fallback to querySelector
+    const scrollContainer = commentaryScrollRef.current;
+    if (!scrollContainer) return;
+
+    // Try ref first, then fallback to querySelector within the container
     let highlightedEl = highlightedWordRef.current;
     if (!highlightedEl) {
-      highlightedEl = document.querySelector('[data-highlighted="true"]');
+      highlightedEl = scrollContainer.querySelector('[data-highlighted="true"]');
     }
 
-    if (!highlightedEl) {
-      return;
-    }
+    if (!highlightedEl) return;
 
-    // Use scrollIntoView for reliable scrolling - keep word in center
-    highlightedEl.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'nearest'
+    // Calculate position relative to scroll container
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const highlightRect = highlightedEl.getBoundingClientRect();
+
+    // Get the element's position relative to the scroll container
+    const relativeTop = highlightRect.top - containerRect.top + scrollContainer.scrollTop;
+
+    // Scroll to center the highlighted word in the container
+    const targetScroll = relativeTop - (containerRect.height / 2) + (highlightRect.height / 2);
+
+    scrollContainer.scrollTo({
+      top: Math.max(0, targetScroll),
+      behavior: 'smooth'
     });
   }, [autoScrollEnabled, audioProgress.isPlaying]);
 
@@ -86,12 +95,20 @@ const ArticlePage = () => {
     }
   }, [audioSection, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
 
-  // Disable auto-scroll temporarily if user manually scrolls during playback
+  // Disable auto-scroll temporarily if user manually scrolls the commentary container
   useEffect(() => {
     if (!audioProgress.isPlaying) return;
 
+    const scrollContainer = commentaryScrollRef.current;
+    if (!scrollContainer) return;
+
     let userScrollTimeout;
+    let isAutoScrolling = false;
+
     const handleUserScroll = () => {
+      // Ignore if this is a programmatic scroll
+      if (isAutoScrolling) return;
+
       // Temporarily disable auto-scroll when user scrolls manually
       setAutoScrollEnabled(false);
 
@@ -102,13 +119,13 @@ const ArticlePage = () => {
       }, 3000);
     };
 
-    // Only track wheel/touch scroll (not programmatic scroll)
-    window.addEventListener('wheel', handleUserScroll, { passive: true });
-    window.addEventListener('touchmove', handleUserScroll, { passive: true });
+    // Track scroll events only on the commentary container
+    scrollContainer.addEventListener('wheel', handleUserScroll, { passive: true });
+    scrollContainer.addEventListener('touchmove', handleUserScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('wheel', handleUserScroll);
-      window.removeEventListener('touchmove', handleUserScroll);
+      scrollContainer.removeEventListener('wheel', handleUserScroll);
+      scrollContainer.removeEventListener('touchmove', handleUserScroll);
       clearTimeout(userScrollTimeout);
     };
   }, [audioProgress.isPlaying]);
@@ -415,13 +432,13 @@ const ArticlePage = () => {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 leading-tight font-serif">{article.title}</h1>
         </div>
 
-        {/* 60/40 Split Layout: Image+Player | Text */}
+        {/* 60/40 Split Layout: Image+Player | Text - Independent Scrolling */}
         <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-4 lg:gap-5">
 
-          {/* LEFT SIDE (60%): Image + Audio Player */}
-          <div className="lg:sticky lg:top-4 lg:self-start">
-            {/* Large Image Container */}
-            <div className="rounded-xl overflow-hidden shadow-lg bg-gray-100 aspect-[16/10] mb-2">
+          {/* LEFT SIDE (60%): Image + Audio Player - Sticky */}
+          <div className="lg:sticky lg:top-4 lg:self-start flex flex-col">
+            {/* Large Image Container - flexible height */}
+            <div className="rounded-xl overflow-hidden shadow-lg bg-gray-100 aspect-[16/9] mb-2 flex-shrink-0">
               <img
                 src={article.imageUrl || article.multimedia?.[0]?.url}
                 alt={article.title}
@@ -429,40 +446,22 @@ const ArticlePage = () => {
               />
             </div>
 
-            {/* Collapsible Audio Player - Below Image */}
+            {/* Audio Player - Below Image */}
             {article.aiCommentary && (
-              <div className={`rounded-lg shadow-md transition-all duration-300 ${expandedPlayer ? 'bg-transparent' : 'bg-gray-900'}`}>
+              <div className="flex-shrink-0">
                 <AudioPlayer
                   commentary={article.aiCommentary}
                   title={article.title}
                   onSectionChange={(idx) => setAudioSection(idx)}
                   onProgressUpdate={(progress) => setAudioProgress(progress)}
-                  compact={!expandedPlayer}
                 />
 
-                {/* Controls Row: Expand/Collapse + Auto-scroll */}
-                <div className={`flex items-center justify-center gap-3 ${expandedPlayer ? 'py-2' : 'pb-2'}`}>
-                  {/* Expand/Collapse Toggle */}
-                  <button
-                    onClick={() => setExpandedPlayer(!expandedPlayer)}
-                    className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600 transition-all"
-                  >
-                    {expandedPlayer ? (
-                      <>
-                        <span>▼</span> Collapse
-                      </>
-                    ) : (
-                      <>
-                        <span>▲</span> Expand
-                      </>
-                    )}
-                  </button>
-
-                  {/* Auto-scroll toggle */}
-                  {audioProgress.isPlaying && (
+                {/* Auto-scroll toggle - only visible when playing */}
+                {audioProgress.isPlaying && (
+                  <div className="flex justify-center mt-2">
                     <button
                       onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
                         autoScrollEnabled
                           ? 'bg-green-600 text-white'
                           : 'bg-gray-700 text-gray-300'
@@ -471,14 +470,17 @@ const ArticlePage = () => {
                       <span className={`w-1.5 h-1.5 rounded-full ${autoScrollEnabled ? 'bg-green-300 animate-pulse' : 'bg-gray-500'}`}></span>
                       Auto-scroll {autoScrollEnabled ? 'ON' : 'OFF'}
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* RIGHT SIDE (40%): Text/Commentary */}
-          <article className="min-w-0">
+          {/* RIGHT SIDE (40%): Text/Commentary - Independent Scrollable */}
+          <article
+            ref={commentaryScrollRef}
+            className="min-w-0 lg:overflow-y-auto lg:max-h-[calc(100vh-160px)] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
+          >
 
             {/* Forexyy AI Analysis Card - Teleprompter Style */}
             {displayedCommentary || article.aiCommentary ? (
