@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Link } from 'react-router-dom';
 import { getYouTubeVideos } from '../services/youtubeService';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -102,15 +103,18 @@ const ReelsSidebar = ({ horizontal = false }) => {
           )}
         </div>
 
-        {/* Embedded Reel Player */}
-        <ReelPlayer
-          reels={reelsData}
-          initialIndex={selectedReelIndex}
-          isOpen={isPlayerOpen}
-          onClose={() => setIsPlayerOpen(false)}
-          onLoadMore={loadMoreReels}
-          hasMore={!!nextPageToken}
-        />
+        {/* Reel Player - Use Portal to render at document root (fixes transform stacking context issue) */}
+        {isPlayerOpen && ReactDOM.createPortal(
+          <ReelPlayer
+            reels={reelsData}
+            initialIndex={selectedReelIndex}
+            isOpen={isPlayerOpen}
+            onClose={() => setIsPlayerOpen(false)}
+            onLoadMore={loadMoreReels}
+            hasMore={!!nextPageToken}
+          />,
+          document.body
+        )}
       </>
     );
   }

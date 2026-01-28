@@ -57,6 +57,23 @@ const formatTime = (seconds) => {
 const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, compact = false }) => {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const playerIdRef = useRef(`audio-player-${Date.now()}`);
+
+    // Listen for global stop event (when another media starts playing)
+    useEffect(() => {
+        const handleStopAllMedia = (e) => {
+            // Don't stop if this player fired the event
+            if (e.detail?.source === playerIdRef.current) return;
+
+            if (audioRef.current && !audioRef.current.paused) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+            }
+        };
+
+        window.addEventListener('stopAllMedia', handleStopAllMedia);
+        return () => window.removeEventListener('stopAllMedia', handleStopAllMedia);
+    }, []);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [audioUrl, setAudioUrl] = useState(null);
@@ -354,6 +371,9 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
         // If audio is preloaded, play instantly
         if (audioUrl && audioRef.current) {
             try {
+                // Stop any other playing media first
+                window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
+
                 console.log('[AudioPlayer] Playing preloaded audio instantly!');
                 await audioRef.current.play();
                 setIsPlaying(true);
@@ -396,6 +416,9 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, com
             setIsPreloaded(true);
 
             if (audioRef.current) {
+                // Stop any other playing media first
+                window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
+
                 audioRef.current.src = url;
                 await audioRef.current.play();
                 setIsPlaying(true);

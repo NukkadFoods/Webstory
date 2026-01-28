@@ -7,7 +7,11 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
     const [isMuted, setIsMuted] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [isLiked, setIsLiked] = useState({});
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const [slideDirection, setSlideDirection] = useState('up'); // 'up' or 'down'
     const containerRef = useRef(null);
+    const iframeRef = useRef(null);
+    const playerIdRef = useRef(`reel-player-${Date.now()}`);
 
     // Gestures
     const touchStartY = useRef(0);
@@ -16,6 +20,30 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
     const lastScrollTime = useRef(0);
 
     const currentReel = reels[currentIndex];
+
+    // Stop all other media when this player opens
+    useEffect(() => {
+        if (isOpen) {
+            // Stop any playing audio/video
+            window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
+        }
+    }, [isOpen]);
+
+    // Listen for global stop event (when another media starts playing)
+    useEffect(() => {
+        const handleStopAllMedia = (e) => {
+            // Don't close if this player fired the event
+            if (e.detail?.source === playerIdRef.current) return;
+
+            // Close this player if another media starts
+            if (isOpen) {
+                onClose?.();
+            }
+        };
+
+        window.addEventListener('stopAllMedia', handleStopAllMedia);
+        return () => window.removeEventListener('stopAllMedia', handleStopAllMedia);
+    }, [isOpen, onClose]);
 
     // Reset index when opening
     useEffect(() => {
@@ -54,31 +82,43 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, currentIndex]);
 
-    // Navigation Logic
+    // Navigation Logic with animation
     const goToNext = useCallback(() => {
         const now = Date.now();
-        // Debounce fast scrolls (500ms)
-        if (now - lastScrollTime.current < 500) return;
+        // Debounce fast scrolls (400ms)
+        if (now - lastScrollTime.current < 400) return;
+        if (isTransitioning) return;
         lastScrollTime.current = now;
 
         if (currentIndex < reels.length - 1) {
-            setCurrentIndex(prev => prev + 1);
-            setIsPaused(false);
+            setSlideDirection('up');
+            setIsTransitioning(true);
+            setTimeout(() => {
+                setCurrentIndex(prev => prev + 1);
+                setIsPaused(false);
+                setTimeout(() => setIsTransitioning(false), 300);
+            }, 150);
         } else if (hasMore) {
             onLoadMore?.();
         }
-    }, [currentIndex, reels.length, hasMore, onLoadMore]);
+    }, [currentIndex, reels.length, hasMore, onLoadMore, isTransitioning]);
 
     const goToPrevious = useCallback(() => {
         const now = Date.now();
-        if (now - lastScrollTime.current < 500) return;
+        if (now - lastScrollTime.current < 400) return;
+        if (isTransitioning) return;
         lastScrollTime.current = now;
 
         if (currentIndex > 0) {
-            setCurrentIndex(prev => prev - 1);
-            setIsPaused(false);
+            setSlideDirection('down');
+            setIsTransitioning(true);
+            setTimeout(() => {
+                setCurrentIndex(prev => prev - 1);
+                setIsPaused(false);
+                setTimeout(() => setIsTransitioning(false), 300);
+            }, 150);
         }
-    }, [currentIndex]);
+    }, [currentIndex, isTransitioning]);
 
     // --- Touch Handlers ---
     const handleTouchStart = (e) => {
@@ -136,7 +176,17 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
     };
 
     const togglePlay = () => {
-        setIsPaused(prev => !prev);
+        const newPausedState = !isPaused;
+        setIsPaused(newPausedState);
+
+        // Use YouTube IFrame API postMessage to pause/play without reloading
+        if (iframeRef.current?.contentWindow) {
+            const command = newPausedState ? 'pauseVideo' : 'playVideo';
+            iframeRef.current.contentWindow.postMessage(
+                JSON.stringify({ event: 'command', func: command }),
+                '*'
+            );
+        }
     };
 
     const toggleLike = (e) => {
@@ -173,13 +223,14 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
     // Actually, widespread pattern for simple embeds: just mute or overlay. 
     // Let's control 'mute' mainly. 'Pause' strictly via iframe src update is okay.
 
-    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=${isPaused ? 0 : 1}&mute=${isMuted ? 1 : 0}&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&showinfo=0`;
+    // Enable JS API for postMessage control (pause/play without reload)
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1`;
 
     return (
         <div
             className="fixed inset-0 z-50 bg-black touch-none select-none"
             ref={containerRef}
-            style={{ touchAction: 'none' }} // Critical for swipe persistence
+            style={{ touchAction: 'none' }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onMouseDown={handleMouseDown}
@@ -200,12 +251,21 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                 {currentIndex + 1} / {hasMore ? '...' : reels.length}
             </div>
 
-            {/* Main Video Container */}
-            <div className="relative w-full h-full flex items-center justify-center">
+            {/* Main Video Container with Slide Animation */}
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                 {/* Video Embed */}
-                <div className="relative w-full max-w-md h-full max-h-[90vh] mx-auto bg-gray-900 rounded-lg overflow-hidden">
+                <div
+                    className={`relative w-full max-w-md h-full max-h-[90vh] mx-auto bg-gray-900 rounded-lg overflow-hidden transition-all duration-300 ease-out ${
+                        isTransitioning
+                            ? slideDirection === 'up'
+                                ? '-translate-y-8 opacity-0 scale-95'
+                                : 'translate-y-8 opacity-0 scale-95'
+                            : 'translate-y-0 opacity-100 scale-100'
+                    }`}
+                >
                     <iframe
-                        key={`${videoId}-${isPaused}`} // Re-render when pause toggles
+                        ref={iframeRef}
+                        key={videoId} // Only re-render when video changes, not on pause
                         src={embedUrl}
                         title={currentReel.title}
                         className="w-full h-full object-cover"
