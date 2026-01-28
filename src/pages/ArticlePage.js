@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getArticleById } from '../services/articleService';
 import { getWallStreetArticleByUrl } from '../services/wallStreetService';
@@ -25,6 +25,93 @@ const ArticlePage = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [audioSection, setAudioSection] = useState(-1); // -1 = not playing, 0+ = section index
   const [audioProgress, setAudioProgress] = useState({ sectionIndex: -1, sectionProgress: 0, isPlaying: false });
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+  const [showReels, setShowReels] = useState(false);
+  const [expandedPlayer, setExpandedPlayer] = useState(false);
+
+  // Refs for auto-scroll functionality
+  const highlightedWordRef = useRef(null);
+  const commentaryContainerRef = useRef(null);
+
+  // Auto-scroll to highlighted word when audio is playing
+  const scrollToHighlightedWord = useCallback(() => {
+    if (!autoScrollEnabled || !audioProgress.isPlaying) return;
+
+    // Try ref first, then fallback to querySelector
+    let highlightedEl = highlightedWordRef.current;
+    if (!highlightedEl) {
+      highlightedEl = document.querySelector('[data-highlighted="true"]');
+    }
+
+    if (!highlightedEl) {
+      return;
+    }
+
+    // Use scrollIntoView for reliable scrolling - keep word in center
+    highlightedEl.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'nearest'
+    });
+  }, [autoScrollEnabled, audioProgress.isPlaying]);
+
+  // Trigger auto-scroll when audio progress updates
+  useEffect(() => {
+    if (audioProgress.isPlaying && autoScrollEnabled && audioProgress.contentProgress > 0) {
+      // Small delay to let DOM update with new highlighted word
+      const timer = setTimeout(scrollToHighlightedWord, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [audioProgress.contentProgress, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
+
+  // Interval-based scroll as backup (every 500ms while playing)
+  useEffect(() => {
+    if (!audioProgress.isPlaying || !autoScrollEnabled) return;
+
+    const scrollInterval = setInterval(() => {
+      scrollToHighlightedWord();
+    }, 500);
+
+    return () => clearInterval(scrollInterval);
+  }, [audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
+
+  // Also scroll when section changes
+  useEffect(() => {
+    if (audioProgress.isPlaying && autoScrollEnabled && audioSection >= 0) {
+      // Give DOM time to update, then scroll
+      const timer = setTimeout(() => {
+        scrollToHighlightedWord();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [audioSection, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
+
+  // Disable auto-scroll temporarily if user manually scrolls during playback
+  useEffect(() => {
+    if (!audioProgress.isPlaying) return;
+
+    let userScrollTimeout;
+    const handleUserScroll = () => {
+      // Temporarily disable auto-scroll when user scrolls manually
+      setAutoScrollEnabled(false);
+
+      // Re-enable after 3 seconds of no manual scrolling
+      clearTimeout(userScrollTimeout);
+      userScrollTimeout = setTimeout(() => {
+        setAutoScrollEnabled(true);
+      }, 3000);
+    };
+
+    // Only track wheel/touch scroll (not programmatic scroll)
+    window.addEventListener('wheel', handleUserScroll, { passive: true });
+    window.addEventListener('touchmove', handleUserScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('wheel', handleUserScroll);
+      window.removeEventListener('touchmove', handleUserScroll);
+      clearTimeout(userScrollTimeout);
+    };
+  }, [audioProgress.isPlaying]);
 
   // Categories for header navigation
   const categories = [
@@ -288,67 +375,133 @@ const ArticlePage = () => {
       {/* Progress Bar */}
       <div className="fixed top-0 left-0 h-1 bg-blue-600 z-50" style={{ width: `${scrollProgress * 100}%` }} />
 
+      {/* Compact Floating Indicator - only shows section info */}
+      {audioProgress.isPlaying && (
+        <div className="fixed bottom-4 right-4 z-50 animate-fadeIn">
+          <div className="bg-gray-900/90 backdrop-blur text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-3 text-sm">
+            <div className="flex items-center gap-0.5">
+              <span className="w-0.5 h-2 bg-blue-400 rounded animate-pulse"></span>
+              <span className="w-0.5 h-3 bg-blue-400 rounded animate-pulse delay-75"></span>
+              <span className="w-0.5 h-2 bg-blue-400 rounded animate-pulse delay-150"></span>
+            </div>
+            <span>
+              {audioSection === 0 ? '🔑 Key Points' :
+               audioSection === 1 ? '📊 Impact' :
+               audioSection === 2 ? '🔮 Outlook' :
+               '🎙️ Intro'}
+            </span>
+            {!autoScrollEnabled && (
+              <button
+                onClick={() => setAutoScrollEnabled(true)}
+                className="text-xs text-blue-400 underline"
+              >
+                Resume scroll
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <Header />
 
-      {/* Main 2-Column Layout */}
-      <main className="w-full px-4 lg:pl-4 lg:pr-0 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6">
+      {/* Main Layout - 50/50 Split */}
+      <main className="w-full px-4 py-4">
+        {/* Title Section - Full Width */}
+        <div className="mb-4">
+          <div className="flex gap-2 mb-3">
+            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
+            <span className="text-gray-400 text-xs py-1"><FontAwesomeIcon icon={faClock} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 leading-tight font-serif">{article.title}</h1>
+        </div>
 
-          {/* MAIN CONTENT - takes remaining space */}
-          <article className="min-w-0 max-w-4xl">
+        {/* 60/40 Split Layout: Image+Player | Text */}
+        <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-4 lg:gap-5">
 
-            <header className="mb-8">
-              <div className="flex gap-2 mb-4">
-                <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
-                <span className="text-gray-400 text-xs py-1"><FontAwesomeIcon icon={faClock} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 leading-tight mb-6 font-serif">{article.title}</h1>
+          {/* LEFT SIDE (60%): Image + Audio Player */}
+          <div className="lg:sticky lg:top-4 lg:self-start">
+            {/* Large Image Container */}
+            <div className="rounded-xl overflow-hidden shadow-lg bg-gray-100 aspect-[16/10] mb-2">
+              <img
+                src={article.imageUrl || article.multimedia?.[0]?.url}
+                alt={article.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
 
-              {/* Main Image - Constrained Container */}
-              <div className="max-w-3xl">
-                <div className="rounded-xl overflow-hidden shadow-sm mb-8 bg-gray-100 aspect-video">
-                  <img
-                    src={article.imageUrl || article.multimedia?.[0]?.url}
-                    alt={article.title}
-                    className="w-full h-full object-cover"
-                  />
+            {/* Collapsible Audio Player - Below Image */}
+            {article.aiCommentary && (
+              <div className={`rounded-lg shadow-md transition-all duration-300 ${expandedPlayer ? 'bg-transparent' : 'bg-gray-900'}`}>
+                <AudioPlayer
+                  commentary={article.aiCommentary}
+                  title={article.title}
+                  onSectionChange={(idx) => setAudioSection(idx)}
+                  onProgressUpdate={(progress) => setAudioProgress(progress)}
+                  compact={!expandedPlayer}
+                />
+
+                {/* Controls Row: Expand/Collapse + Auto-scroll */}
+                <div className={`flex items-center justify-center gap-3 ${expandedPlayer ? 'py-2' : 'pb-2'}`}>
+                  {/* Expand/Collapse Toggle */}
+                  <button
+                    onClick={() => setExpandedPlayer(!expandedPlayer)}
+                    className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600 transition-all"
+                  >
+                    {expandedPlayer ? (
+                      <>
+                        <span>▼</span> Collapse
+                      </>
+                    ) : (
+                      <>
+                        <span>▲</span> Expand
+                      </>
+                    )}
+                  </button>
+
+                  {/* Auto-scroll toggle */}
+                  {audioProgress.isPlaying && (
+                    <button
+                      onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all ${
+                        autoScrollEnabled
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-700 text-gray-300'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${autoScrollEnabled ? 'bg-green-300 animate-pulse' : 'bg-gray-500'}`}></span>
+                      Auto-scroll {autoScrollEnabled ? 'ON' : 'OFF'}
+                    </button>
+                  )}
                 </div>
               </div>
-            </header>
-
-            {/* AI News Anchor Player */}
-            {article.aiCommentary && (
-              <AudioPlayer
-                commentary={article.aiCommentary}
-                title={article.title}
-                onSectionChange={(idx) => setAudioSection(idx)}
-                onProgressUpdate={(progress) => setAudioProgress(progress)}
-              />
             )}
+          </div>
 
-            {/* Forexyy AI Analysis Card */}
+          {/* RIGHT SIDE (40%): Text/Commentary */}
+          <article className="min-w-0">
+
+            {/* Forexyy AI Analysis Card - Teleprompter Style */}
             {displayedCommentary || article.aiCommentary ? (
-              <div className="bg-white border-2 border-blue-600 rounded-2xl overflow-hidden mb-8 shadow-lg">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-5">
+              <div
+                ref={commentaryContainerRef}
+                className={`bg-white border-2 rounded-xl overflow-hidden shadow-lg transition-all duration-300 ${
+                  audioProgress.isPlaying ? 'border-blue-400' : 'border-blue-600'
+                }`}
+              >
+                {/* Compact Header */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-white font-bold text-xl flex items-center gap-2 mb-1">
-                        <FontAwesomeIcon icon={faBolt} className="text-yellow-300" />
-                        FOREXYY INSIGHT
-                      </h3>
-                      <p className="text-blue-100 text-xs uppercase tracking-wide">
-                        Analysis by Forexyy News Team {isTyping && <span className="animate-pulse">✍️ Writing...</span>}
-                      </p>
-                    </div>
-                    <div className="bg-white/20 backdrop-blur px-3 py-1 rounded-full">
-                      <FontAwesomeIcon icon={faRobot} className={isTyping ? "text-white animate-pulse" : "text-white"} />
-                    </div>
+                    <h3 className="text-white font-bold text-base flex items-center gap-2">
+                      <FontAwesomeIcon icon={faBolt} className="text-yellow-300" />
+                      FOREXYY INSIGHT
+                      {isTyping && <span className="text-xs text-blue-200 animate-pulse ml-2">✍️</span>}
+                    </h3>
+                    <FontAwesomeIcon icon={faRobot} className="text-white/70" />
                   </div>
                 </div>
 
-                {/* Content with Typewriter Effect */}
-                <div className="p-6">
+                {/* Content - Teleprompter Style with more line height */}
+                <div className="p-4 md:p-5">
                   {(() => {
                     // Smart parser: Split commentary into 3 sections
                     const text = displayedCommentary;
@@ -407,35 +560,34 @@ const ArticlePage = () => {
                       return (
                         <div
                           key={idx}
-                          className={`mb-6 last:mb-0 animate-fadeIn transition-all duration-300 ${isActiveSection ? 'scale-[1.02] -mx-2 px-2' : ''
-                            }`}
+                          className={`mb-4 last:mb-0 transition-all duration-200 ${isActiveSection ? '' : ''}`}
                         >
-                          {/* Section Header - Bold & Highlighted */}
-                          <div className={`p-4 rounded-lg mb-4 transition-all duration-300 ${isActiveSection
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg'
+                          {/* Compact Section Header */}
+                          <div className={`px-3 py-2 rounded-lg mb-2 transition-all duration-200 ${isActiveSection
+                            ? 'bg-blue-600 shadow-md'
                             : isPastSection
-                              ? 'bg-gradient-to-r from-blue-200 to-indigo-200'
-                              : 'bg-gradient-to-r from-blue-100 to-indigo-100'
+                              ? 'bg-blue-100'
+                              : 'bg-gray-100'
                             }`}>
-                            <h4 className={`text-xl font-bold flex items-center gap-3 ${isActiveSection ? 'text-white' : 'text-blue-900'
+                            <h4 className={`text-sm font-bold flex items-center gap-2 ${isActiveSection ? 'text-white' : 'text-blue-900'
                               }`}>
-                              <span className="text-3xl">{section.icon}</span>
+                              <span className="text-lg">{section.icon}</span>
                               <span>{section.title}</span>
                               {isActiveSection && (
-                                <span className="ml-auto flex items-center gap-1">
-                                  <span className="w-1 h-3 bg-white/80 rounded animate-pulse"></span>
-                                  <span className="w-1 h-4 bg-white/80 rounded animate-pulse delay-75"></span>
-                                  <span className="w-1 h-2 bg-white/80 rounded animate-pulse delay-150"></span>
+                                <span className="ml-auto flex items-center gap-0.5">
+                                  <span className="w-0.5 h-2 bg-white/80 rounded animate-pulse"></span>
+                                  <span className="w-0.5 h-3 bg-white/80 rounded animate-pulse delay-75"></span>
+                                  <span className="w-0.5 h-2 bg-white/80 rounded animate-pulse delay-150"></span>
                                 </span>
                               )}
                             </h4>
                           </div>
 
-                          {/* Section Content with Sentence Highlighting */}
-                          <div className={`pl-8 pr-4 transition-all duration-300 ${isActiveSection ? 'opacity-100' : isPastSection ? 'opacity-70' : 'opacity-50'
-                            }`}>
-                            <div className={`leading-loose text-base ${isActiveSection ? 'text-gray-900' : 'text-gray-700'
-                              }`}>
+                          {/* Section Content - Teleprompter Style */}
+                          <div className={`pl-4 pr-2 transition-all duration-200 ${
+                            isActiveSection ? 'opacity-100' : isPastSection ? 'opacity-60' : 'opacity-40'
+                          }`}>
+                            <div className={`text-lg leading-relaxed ${isActiveSection ? 'text-gray-900' : 'text-gray-600'}`}>
                               {(() => {
                                 // Split content into sentences for highlighting
                                 const sentences = section.content
@@ -454,34 +606,32 @@ const ArticlePage = () => {
                                   if (isActiveSection && audioProgress.isPlaying && audioProgress.isReadingHeader && audioProgress.sectionIndex === idx) {
                                     return (
                                       <div>
-                                        <span className="text-blue-500 text-sm italic mb-2 block">
-                                          🎙️ Reading section title...
-                                        </span>
-                                        <span className="text-gray-500">{section.content}</span>
+                                        <span className="text-blue-500 text-sm italic mb-1 block">🎙️ Reading title...</span>
+                                        <span className="text-gray-400">{section.content}</span>
                                       </div>
                                     );
                                   }
-                                  return section.content;
+                                  return <span className="text-gray-600">{section.content}</span>;
                                 }
 
                                 // Calculate which sentence is currently being read using WEIGHTED progress
-                                // This matches the AudioPlayer's timing logic for perfect sync
                                 const getSpeechWeight = (text) => {
                                   if (!text) return 0;
                                   let weight = 0;
                                   for (let i = 0; i < text.length; i++) {
                                     const char = text[i];
-                                    if (/[A-Z]/.test(char)) weight += 1.5;
-                                    else if (/[0-9]/.test(char)) weight += 1.2;
-                                    else if ([',', ';', ':'].includes(char)) weight += 3;
-                                    else if (['.', '!', '?'].includes(char)) weight += 6;
+                                    if (/[A-Z]/.test(char)) weight += 1.3;
+                                    else if (/[0-9]/.test(char)) weight += 1.1;
+                                    else if ([',', ';', ':'].includes(char)) weight += 2.5;
+                                    else if (['.', '!', '?'].includes(char)) weight += 5;
                                     else weight += 1;
                                   }
                                   return weight;
                                 };
 
                                 const totalWeight = sentences.reduce((sum, s) => sum + getSpeechWeight(s), 0);
-                                const progress = audioProgress.contentProgress || 0;
+                                // Add slight lead (5%) to keep highlighting ahead of audio
+                                const progress = Math.min((audioProgress.contentProgress || 0) + 0.05, 1);
                                 const targetWeight = progress * totalWeight;
 
                                 let currentSentenceIndex = 0;
@@ -499,50 +649,54 @@ const ArticlePage = () => {
                                   accumulatedWeight += sWeight;
                                   if (i === sentences.length - 1) {
                                     currentSentenceIndex = sentences.length - 1;
-                                    weightInCurrentSentence = sWeight; // Completed
+                                    weightInCurrentSentence = sWeight;
                                   }
                                 }
 
                                 return (
-                                  <div className="space-y-3">
+                                  <div className="space-y-2">
                                     {sentences.map((sentence, sentenceIdx) => {
                                       const isCurrentSentence = sentenceIdx === currentSentenceIndex;
+                                      const isPastSentence = sentenceIdx < currentSentenceIndex;
 
                                       if (isCurrentSentence) {
                                         // Split current sentence into words for word-level highlighting
                                         const words = sentence.split(/\s+/);
-                                        const totalSentenceWeight = getSpeechWeight(sentence);
 
                                         // Calculate current word based on weight
                                         let currentWordIndex = 0;
                                         let accWordWeight = 0;
 
-                                        // If we are at the very start of sentence
-                                        if (weightInCurrentSentence <= 0) currentWordIndex = -1;
+                                        if (weightInCurrentSentence <= 0) currentWordIndex = 0;
 
                                         for (let i = 0; i < words.length; i++) {
                                           const wWeight = getSpeechWeight(words[i]);
-                                          // Add 1 for space after word (simplified)
                                           if (accWordWeight + wWeight >= weightInCurrentSentence) {
                                             currentWordIndex = i;
                                             break;
                                           }
-                                          accWordWeight += wWeight + 1; // +1 for space
+                                          accWordWeight += wWeight + 0.8; // space weight
                                           if (i === words.length - 1) currentWordIndex = words.length - 1;
                                         }
 
                                         return (
-                                          <p key={sentenceIdx} className="text-gray-900 leading-relaxed">
+                                          <p key={sentenceIdx} className="text-gray-900 leading-relaxed text-lg">
                                             {words.map((word, wordIdx) => {
                                               const isCurrentWord = wordIdx === currentWordIndex;
+                                              const isPastWord = wordIdx < currentWordIndex;
 
                                               return (
                                                 <span
-                                                  key={wordIdx}
-                                                  className={`inline-block mr-1 transition-colors duration-75 rounded px-0.5 ${isCurrentWord
-                                                      ? 'bg-yellow-300 text-gray-900 font-medium'
-                                                      : 'text-gray-900'
-                                                    }`}
+                                                  key={`${idx}-${sentenceIdx}-${wordIdx}`}
+                                                  ref={isCurrentWord ? highlightedWordRef : null}
+                                                  data-highlighted={isCurrentWord ? 'true' : undefined}
+                                                  className={`inline-block mr-1.5 rounded px-1 py-0.5 ${
+                                                    isCurrentWord
+                                                      ? 'bg-yellow-400 text-gray-900 font-bold shadow-md ring-2 ring-yellow-500'
+                                                      : isPastWord
+                                                        ? 'text-gray-700'
+                                                        : 'text-gray-400'
+                                                  }`}
                                                 >
                                                   {word}
                                                 </span>
@@ -555,7 +709,11 @@ const ArticlePage = () => {
                                       return (
                                         <p
                                           key={sentenceIdx}
-                                          className="text-gray-700 leading-relaxed"
+                                          className={`leading-relaxed text-lg transition-colors duration-200 ${
+                                            isPastSentence
+                                              ? 'text-gray-800' // Already read
+                                              : 'text-gray-400' // Coming up
+                                          }`}
                                         >
                                           {sentence}
                                         </p>
@@ -574,11 +732,11 @@ const ArticlePage = () => {
                     });
                   })()}
 
-                  {/* Footer */}
-                  {!isTyping && (
-                    <div className="mt-6 pt-4 border-t border-gray-200 animate-fadeIn">
-                      <p className="text-xs text-gray-500 text-center">
-                        Forexyy Newsletter • Expert Analysis & Insights • Powered by AI-Enhanced Journalism
+                  {/* Compact Footer */}
+                  {!isTyping && !audioProgress.isPlaying && (
+                    <div className="mt-4 pt-3 border-t border-gray-100">
+                      <p className="text-xs text-gray-400 text-center">
+                        Forexyy Newsletter • AI-Enhanced Journalism
                       </p>
                     </div>
                   )}
@@ -597,81 +755,60 @@ const ArticlePage = () => {
                 </div>
               </div>
             )}
-
-            {/* Article Body */}
-            <div className="prose prose-lg max-w-none text-gray-800 leading-relaxed font-serif">
-              {article.content ? (
-                <div dangerouslySetInnerHTML={{ __html: article.content }} />
-              ) : (
-                <p>{article.abstract || article.summary}</p>
-              )}
-            </div>
-
-            {/* Action Bar */}
-            <div className="mt-12 flex items-center gap-4 border-t border-gray-100 pt-6">
-              <button
-                onClick={handleShare}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium transition"
-              >
-                <FontAwesomeIcon icon={faShare} /> Share
-              </button>
-              <button
-                onClick={handleBookmark}
-                className={`flex items-center gap-2 px-4 py-2 ${bookmarked ? 'bg-blue-100 text-blue-600' : 'bg-gray-100'} hover:bg-gray-200 rounded-full text-sm font-medium transition`}
-              >
-                <FontAwesomeIcon icon={faBookmark} /> {bookmarked ? 'Saved' : 'Save'}
-              </button>
-              <div className="ml-auto flex gap-2">
-                <button className="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full"><FontAwesomeIcon icon={faTwitter} /></button>
-                <button className="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full"><FontAwesomeIcon icon={faFacebook} /></button>
-              </div>
-            </div>
           </article>
-
-
-          {/* RIGHT COLUMN: REELS / SHORTS (4 cols) */}
-          <ReelsSidebar />
 
         </div>
 
-        {/* RELATED ARTICLES - Horizontal Scroll at Bottom */}
+        {/* Article Body - Full Width Below */}
+        <div className="mt-8 prose prose-lg max-w-none text-gray-800 leading-relaxed font-serif">
+          {article.content ? (
+            <div dangerouslySetInnerHTML={{ __html: article.content }} />
+          ) : (
+            <p>{article.abstract || article.summary}</p>
+          )}
+        </div>
+
+        {/* Action Bar */}
+        <div className="mt-8 flex items-center gap-4 border-t border-gray-100 pt-6">
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium transition"
+          >
+            <FontAwesomeIcon icon={faShare} /> Share
+          </button>
+          <button
+            onClick={handleBookmark}
+            className={`flex items-center gap-2 px-4 py-2 ${bookmarked ? 'bg-blue-100 text-blue-600' : 'bg-gray-100'} hover:bg-gray-200 rounded-full text-sm font-medium transition`}
+          >
+            <FontAwesomeIcon icon={faBookmark} /> {bookmarked ? 'Saved' : 'Save'}
+          </button>
+          <div className="ml-auto flex gap-2">
+            <button className="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full"><FontAwesomeIcon icon={faTwitter} /></button>
+            <button className="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full"><FontAwesomeIcon icon={faFacebook} /></button>
+          </div>
+        </div>
+
+        {/* RELATED ARTICLES */}
         {relatedArticles.length > 0 && (
-          <div className="mt-12 pt-8 border-t border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
-                Related Articles
-              </h3>
-            </div>
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+              <span className="w-1 h-5 bg-blue-600 rounded-full"></span>
+              Related Articles
+            </h3>
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
               {relatedArticles.map((relArticle, index) => (
                 <Link
                   key={`related-${relArticle.id}-${index}`}
                   to={`/article/${encodeURIComponent(relArticle.url || relArticle.id)}`}
-                  className="flex-none w-72 group snap-start"
+                  className="flex-none w-64 group snap-start"
                 >
                   <div className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all h-full">
                     {relArticle.multimedia?.[0]?.url && (
-                      <img
-                        src={relArticle.multimedia[0].url}
-                        alt={relArticle.title}
-                        className="w-full h-40 object-cover"
-                      />
+                      <img src={relArticle.multimedia[0].url} alt={relArticle.title} className="w-full h-36 object-cover" />
                     )}
-                    <div className="p-4">
-                      <span className="text-xs font-semibold text-blue-600 uppercase">
-                        {relArticle.section}
-                      </span>
-                      <h4 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 line-clamp-2 mt-2 mb-2">
-                        {relArticle.title}
-                      </h4>
-                      <p className="text-xs text-gray-500">
-                        {new Date(relArticle.published_date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </p>
+                    <div className="p-3">
+                      <span className="text-xs font-semibold text-blue-600 uppercase">{relArticle.section}</span>
+                      <h4 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 line-clamp-2 mt-1">{relArticle.title}</h4>
                     </div>
                   </div>
                 </Link>
@@ -681,7 +818,27 @@ const ArticlePage = () => {
         )}
       </main>
 
-      <FluidAd className="my-12" />
+      {/* Bottom Reels Slider - Hidden by default, slide up on click */}
+      <div className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ${showReels ? 'translate-y-0' : 'translate-y-full'}`}>
+        {/* Reels Tab - Always visible */}
+        <button
+          onClick={() => setShowReels(!showReels)}
+          className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-t-xl font-bold text-sm shadow-lg flex items-center gap-2"
+        >
+          <span>🎬</span>
+          <span>Reels</span>
+          <span className={`transition-transform duration-300 ${showReels ? 'rotate-180' : ''}`}>▲</span>
+        </button>
+
+        {/* Reels Content */}
+        <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 shadow-2xl">
+          <div className="max-w-7xl mx-auto">
+            <ReelsSidebar horizontal={true} />
+          </div>
+        </div>
+      </div>
+
+      <FluidAd className="my-8" />
     </div>
   );
 };

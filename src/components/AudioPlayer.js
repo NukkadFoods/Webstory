@@ -54,7 +54,7 @@ const formatTime = (seconds) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) => {
+const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, compact = false }) => {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -428,6 +428,117 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
 
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+    // Compact mode - minimal UI
+    if (compact) {
+        return (
+            <div className="w-full">
+                <div className="bg-transparent rounded-lg px-3 py-2">
+                    {/* Compact Controls Row */}
+                    <div className="flex items-center gap-3">
+                        {/* Small Avatar */}
+                        <div className="relative flex-shrink-0">
+                            <img
+                                src="/images/rachel-anderson.jpeg"
+                                alt="Rachel Anderson"
+                                className="w-8 h-8 rounded-full object-cover border border-blue-500"
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                            />
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-bold text-xs hidden">
+                                RA
+                            </div>
+                            {isPlaying && (
+                                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border border-gray-900 animate-pulse"></span>
+                            )}
+                        </div>
+
+                        {/* Play/Pause Button - Compact */}
+                        <button
+                            onClick={handlePlay}
+                            disabled={isLoading || (!isPreloaded && !isPlaying)}
+                            className={`flex items-center justify-center w-10 h-10 rounded-full transition-all flex-shrink-0 ${
+                                isLoading || (!isPreloaded && !isPlaying && !error)
+                                    ? 'bg-gray-600 cursor-not-allowed opacity-70'
+                                    : isPreloaded && !isPlaying
+                                        ? 'bg-green-600 hover:bg-green-500 text-white animate-pulse'
+                                        : 'bg-blue-600 hover:bg-blue-500 text-white'
+                            }`}
+                        >
+                            {isLoading || (!isPreloaded && !isPlaying && !error) ? (
+                                <Loader size={18} className="animate-spin" />
+                            ) : isPlaying ? (
+                                <Pause size={18} fill="currentColor" />
+                            ) : (
+                                <Play size={18} fill="currentColor" className="ml-0.5" />
+                            )}
+                        </button>
+
+                        {/* Seekbar - Compact */}
+                        <div className="flex-1">
+                            <div className="relative h-2 bg-gray-700 rounded-full">
+                                <div
+                                    className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
+                                    style={{ width: `${progress}%` }}
+                                />
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max={duration || 0}
+                                    value={currentTime}
+                                    onChange={handleSeek}
+                                    className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                                    disabled={!audioUrl}
+                                />
+                            </div>
+                            <div className="flex justify-between mt-0.5">
+                                <span className="text-gray-400 text-[10px] font-mono">{formatTime(currentTime)}</span>
+                                <span className="text-gray-500 text-[10px] font-mono">{formatTime(duration)}</span>
+                            </div>
+                        </div>
+
+                        {/* Mute Button - Compact */}
+                        <button onClick={toggleMute} className="p-1 text-gray-400 hover:text-white transition flex-shrink-0">
+                            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                        </button>
+
+                        {/* Live Badge - Compact */}
+                        {isPlaying && (
+                            <div className="flex items-center gap-1 bg-red-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
+                                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
+                                <span className="text-red-400 text-[10px] font-bold uppercase">Live</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Status Message - Compact */}
+                    {!isLoading && !isPlaying && !isPreloaded && !error && (
+                        <div className="mt-1 text-gray-400 text-[10px] text-center flex items-center justify-center gap-1">
+                            <Loader size={10} className="animate-spin" />
+                            Preparing audio...
+                        </div>
+                    )}
+
+                    {/* Hidden Audio Element */}
+                    <audio
+                        ref={audioRef}
+                        onTimeUpdate={handleTimeUpdate}
+                        onLoadedMetadata={handleLoadedMetadata}
+                        onEnded={handleEnded}
+                        onError={() => {
+                            setIsLoading(false);
+                            setIsPlaying(false);
+                            setError('Audio playback error');
+                        }}
+                        preload="metadata"
+                        className="hidden"
+                    />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="w-full max-w-2xl mx-auto my-6">
             {/* Main Player Card */}
@@ -499,18 +610,19 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
 
                 {/* Controls Row */}
                 <div className="flex items-center gap-4">
-                    {/* Play/Pause Button */}
+                    {/* Play/Pause Button - Disabled during loading OR preparing (not preloaded yet) */}
                     <button
                         onClick={handlePlay}
-                        disabled={isLoading}
-                        className={`flex items-center justify-center w-14 h-14 rounded-full transition-all ${isLoading
-                            ? 'bg-gray-700 cursor-wait'
-                            : isPreloaded && !isPlaying
-                                ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white shadow-lg shadow-green-500/30 animate-pulse'
-                                : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/30'
-                            }`}
+                        disabled={isLoading || (!isPreloaded && !isPlaying)}
+                        className={`flex items-center justify-center w-14 h-14 rounded-full transition-all ${
+                            isLoading || (!isPreloaded && !isPlaying && !error)
+                                ? 'bg-gray-600 cursor-not-allowed opacity-70'
+                                : isPreloaded && !isPlaying
+                                    ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white shadow-lg shadow-green-500/30 animate-pulse'
+                                    : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/30'
+                        }`}
                     >
-                        {isLoading ? (
+                        {isLoading || (!isPreloaded && !isPlaying && !error) ? (
                             <Loader size={24} className="animate-spin" />
                         ) : isPlaying ? (
                             <Pause size={24} fill="currentColor" />

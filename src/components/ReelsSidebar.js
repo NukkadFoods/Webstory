@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faTimes, faChevronLeft } from '@fortawesome/free-solid-svg-icons';
 import ReelPlayer from './ReelPlayer';
 
-const ReelsSidebar = () => {
+const ReelsSidebar = ({ horizontal = false }) => {
   const [reelsData, setReelsData] = useState([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
@@ -47,6 +47,73 @@ const ReelsSidebar = () => {
       fetchYouTubeReels(nextPageToken);
     }
   };
+
+  // Horizontal mode - for bottom slider
+  if (horizontal) {
+    return (
+      <>
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x">
+          {reelsData.length > 0 ? reelsData.map((reel, index) => (
+            <button
+              key={`reel-horizontal-${reel.videoId || reel.id}-${index}`}
+              onClick={() => openReelPlayer(index)}
+              className="flex-none w-40 group relative rounded-xl overflow-hidden cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 snap-start"
+              style={{ height: '220px' }}
+            >
+              <img
+                src={reel.thumbnail?.high || reel.thumbnail?.medium || reel.thumbnail?.default || reel.thumbnail}
+                alt={reel.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+              {/* Play Icon Overlay */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="bg-white/30 backdrop-blur-sm p-3 rounded-full">
+                  <FontAwesomeIcon icon={faPlay} className="text-white text-xl" />
+                </div>
+              </div>
+
+              <div className="absolute top-2 right-2 bg-red-600 rounded px-1.5 py-0.5 flex items-center gap-1 text-white text-[8px] font-bold">
+                <FontAwesomeIcon icon={faPlay} className="text-[6px]" /> SHORTS
+              </div>
+
+              <div className="absolute bottom-0 left-0 w-full p-2">
+                <h4 className="text-white font-semibold text-[10px] leading-snug line-clamp-2">{reel.title}</h4>
+                <p className="text-gray-300 text-[8px] flex items-center gap-1 mt-1">
+                  <FontAwesomeIcon icon={faPlay} className="text-[6px]" />
+                  {parseInt(reel.viewCount).toLocaleString()} views
+                </p>
+              </div>
+            </button>
+          )) : (
+            <div className="text-sm text-gray-400 text-center py-4 w-full">Loading reels...</div>
+          )}
+
+          {/* Load More Button */}
+          {nextPageToken && (
+            <button
+              onClick={loadMoreReels}
+              disabled={loading}
+              className="flex-none w-32 h-[220px] bg-white/10 rounded-xl flex items-center justify-center text-white text-sm font-medium hover:bg-white/20 transition"
+            >
+              {loading ? 'Loading...' : 'Load More →'}
+            </button>
+          )}
+        </div>
+
+        {/* Embedded Reel Player */}
+        <ReelPlayer
+          reels={reelsData}
+          initialIndex={selectedReelIndex}
+          isOpen={isPlayerOpen}
+          onClose={() => setIsPlayerOpen(false)}
+          onLoadMore={loadMoreReels}
+          hasMore={!!nextPageToken}
+        />
+      </>
+    );
+  }
 
   return (
     <>
