@@ -46,31 +46,22 @@ const ArticlePage = () => {
   const scrollToHighlightedWord = useCallback(() => {
     if (!autoScrollEnabled || !audioProgress.isPlaying) return;
 
-    const scrollContainer = commentaryScrollRef.current;
-    if (!scrollContainer) return;
-
-    // Try ref first, then fallback to querySelector within the container
+    // Try ref first, then fallback to querySelector
     let highlightedEl = highlightedWordRef.current;
     if (!highlightedEl) {
-      highlightedEl = scrollContainer.querySelector('[data-highlighted="true"]');
+      const scrollContainer = commentaryScrollRef.current;
+      if (scrollContainer) {
+        highlightedEl = scrollContainer.querySelector('[data-highlighted="true"]');
+      }
     }
 
     if (!highlightedEl) return;
 
-    // Calculate position relative to scroll container
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const highlightRect = highlightedEl.getBoundingClientRect();
-
-    // Get the element's position relative to the scroll container
-    const relativeTop = highlightRect.top - containerRect.top + scrollContainer.scrollTop;
-
-    // Center the highlighted word in the container (50% from top)
-    const targetScroll = relativeTop - (containerRect.height * 0.5) + (highlightRect.height / 2);
-
-    // Use 'auto' for instant scrolling to keep up with the audio
-    scrollContainer.scrollTo({
-      top: Math.max(0, targetScroll),
-      behavior: 'auto'
+    // Use scrollIntoView for reliable centering
+    highlightedEl.scrollIntoView({
+      behavior: 'auto',
+      block: 'center',
+      inline: 'nearest'
     });
   }, [autoScrollEnabled, audioProgress.isPlaying]);
 
@@ -83,13 +74,13 @@ const ArticlePage = () => {
     }
   }, [audioProgress.contentProgress, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
 
-  // Interval-based scroll as backup (every 200ms while playing for faster tracking)
+  // Interval-based scroll (every 100ms while playing for smooth tracking)
   useEffect(() => {
     if (!audioProgress.isPlaying || !autoScrollEnabled) return;
 
     const scrollInterval = setInterval(() => {
       scrollToHighlightedWord();
-    }, 200);
+    }, 100);
 
     return () => clearInterval(scrollInterval);
   }, [audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
@@ -629,23 +620,24 @@ const ArticlePage = () => {
                                 }
 
                                 // Calculate which sentence is currently being read using WEIGHTED progress
+                                // Must match AudioPlayer weights exactly for sync
                                 const getSpeechWeight = (text) => {
                                   if (!text) return 0;
                                   let weight = 0;
                                   for (let i = 0; i < text.length; i++) {
                                     const char = text[i];
-                                    if (/[A-Z]/.test(char)) weight += 1.3;
-                                    else if (/[0-9]/.test(char)) weight += 1.1;
-                                    else if ([',', ';', ':'].includes(char)) weight += 2.5;
-                                    else if (['.', '!', '?'].includes(char)) weight += 5;
+                                    if (/[A-Z]/.test(char)) weight += 1.5;
+                                    else if (/[0-9]/.test(char)) weight += 1.2;
+                                    else if ([',', ';', ':'].includes(char)) weight += 3;
+                                    else if (['.', '!', '?'].includes(char)) weight += 6;
                                     else weight += 1;
                                   }
                                   return weight;
                                 };
 
                                 const totalWeight = sentences.reduce((sum, s) => sum + getSpeechWeight(s), 0);
-                                // Add slight lead (5%) to keep highlighting ahead of audio
-                                const progress = Math.min((audioProgress.contentProgress || 0) + 0.05, 1);
+                                // Match exactly with audio - no lead offset
+                                const progress = Math.min(audioProgress.contentProgress || 0, 1);
                                 const targetWeight = progress * totalWeight;
 
                                 let currentSentenceIndex = 0;
@@ -689,7 +681,7 @@ const ArticlePage = () => {
                                             currentWordIndex = i;
                                             break;
                                           }
-                                          accWordWeight += wWeight + 0.8; // space weight
+                                          accWordWeight += wWeight + 1; // space weight
                                           if (i === words.length - 1) currentWordIndex = words.length - 1;
                                         }
 
