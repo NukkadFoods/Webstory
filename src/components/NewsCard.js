@@ -84,10 +84,10 @@ const NewsCard = ({ article, id, title, abstract, byline, published_date, image,
   return (
     <Link
       to={`/article/${articleIdentifier}`}
-      className="group block bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 h-full touch-manipulation"
+      className="group block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 h-full touch-manipulation news-card"
     >
-      {/* Image Container */}
-      <div className="relative aspect-[4/3] sm:aspect-[16/10] overflow-hidden bg-gray-100">
+      {/* Image Container - Full card height */}
+      <div className="relative h-56 sm:h-64 md:h-72 lg:h-64 xl:h-72 overflow-hidden bg-gray-100">
         {!imageError && imageOptions.length > 0 ? (
           <img
             src={imageOptions[currentImageIndex]?.url}
@@ -99,23 +99,23 @@ const NewsCard = ({ article, id, title, abstract, byline, published_date, image,
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center">
-            <span className="text-4xl">📰</span>
+            <span className="text-5xl">📰</span>
           </div>
         )}
 
         {/* Gradient overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
-        {/* Section badge - small and subtle */}
+        {/* Section badge */}
         {articleData.section && (
-          <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-blue-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded uppercase tracking-wide">
+          <span className="absolute top-3 left-3 bg-blue-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">
             {articleData.section}
           </span>
         )}
 
         {/* Title overlay on image */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
-          <h2 className="text-white font-bold text-sm sm:text-base lg:text-lg leading-snug line-clamp-2 group-hover:text-blue-200 transition-colors">
+        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
+          <h2 className="text-white font-bold text-base sm:text-lg md:text-xl leading-snug line-clamp-3 group-hover:text-blue-200 transition-colors">
             {articleData.title}
           </h2>
         </div>

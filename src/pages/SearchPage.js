@@ -3,13 +3,15 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { searchArticles } from '../services/articleService';
 import NewsCard from '../components/NewsCard';
 import FluidAd from '../components/FluidAd';
+import Header from '../components/Header';
+import ReelsSidebar from '../components/ReelsSidebar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faSearch, faSpinner, faArrowDown } from '@fortawesome/free-solid-svg-icons';
 
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [allArticles, setAllArticles] = useState([]); // Store all fetched articles
-  const [displayedArticles, setDisplayedArticles] = useState([]); // Articles currently displayed
+  const [allArticles, setAllArticles] = useState([]);
+  const [displayedArticles, setDisplayedArticles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
@@ -17,6 +19,7 @@ const SearchPage = () => {
   const [totalResults, setTotalResults] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreArticles, setHasMoreArticles] = useState(true);
+  const [showReels, setShowReels] = useState(false);
 
   const query = searchParams.get('q');
   const INITIAL_DISPLAY_COUNT = 6; // 2 rows × 3 columns (on desktop)
@@ -147,111 +150,134 @@ const SearchPage = () => {
   };
 
   return (
-    <div className="search-page">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Search Results</h1>
-        <Link to="/" className="inline-flex items-center text-blue-700">
-          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Back to home
-        </Link>
-      </div>
+    <div className="search-page min-h-screen bg-gray-50">
+      <Header />
 
-      <div className="mb-8">
-        <form onSubmit={handleSearch} className="flex max-w-lg">
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search for articles..."
-            className="flex-grow px-4 py-2 border border-gray-300 rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="submit"
-            className="bg-blue-700 text-white px-6 py-2 rounded-r hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <FontAwesomeIcon icon={faSearch} className="mr-2" /> Search
-          </button>
-        </form>
-      </div>
+      <div className="w-full px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 pb-20">
+        <div className="w-full">
+          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold">Search Results</h1>
+            <Link to="/" className="inline-flex items-center text-blue-700 text-sm sm:text-base">
+              <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Back to home
+            </Link>
+          </div>
 
-      {query && (
-        <div className="flex justify-between items-center mb-6">
-          <p className="text-gray-600">
-            Showing results for: <span className="font-semibold">{query}</span>
-          </p>
-          {totalResults > 0 && (
-            <p className="text-sm text-gray-500">
-              {displayedArticles.length} of {totalResults} results
-            </p>
+          <div className="mb-6 sm:mb-8">
+            <form onSubmit={handleSearch} className="flex max-w-xl">
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search for articles..."
+                className="flex-grow px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+              />
+              <button
+                type="submit"
+                className="bg-blue-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base touch-manipulation"
+              >
+                <FontAwesomeIcon icon={faSearch} className="sm:mr-2" />
+                <span className="hidden sm:inline">Search</span>
+              </button>
+            </form>
+          </div>
+
+          {query && (
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4 sm:mb-6">
+              <p className="text-gray-600 text-sm sm:text-base">
+                Showing results for: <span className="font-semibold">{query}</span>
+              </p>
+              {totalResults > 0 && (
+                <p className="text-xs sm:text-sm text-gray-500">
+                  {displayedArticles.length} of {totalResults} results
+                </p>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {loading && (
-        <div className="flex justify-center my-12">
-          <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-blue-600" />
-        </div>
-      )}
+          {loading && (
+            <div className="flex justify-center my-12">
+              <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-blue-600" />
+            </div>
+          )}
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-          <p>{error}</p>
-        </div>
-      )}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+              <p>{error}</p>
+            </div>
+          )}
 
-      {!loading && !error && (
-        <>
-          {displayedArticles.length > 0 ? (
+          {!loading && !error && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayedArticles.map((article, index) => (
-                  <React.Fragment key={article.id || article.uri}>
-                    <NewsCard article={article} />
-                    {/* Add in-feed ad after every 10 articles in search results */}
-                    {(index + 1) % 10 === 0 && index < displayedArticles.length - 1 && (
-                      <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                        <FluidAd className="my-4" />
-                      </div>
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-              
-              {/* Load More Button - Always showing if we have more articles to display */}
-              {(hasMoreArticles || displayedArticles.length < allArticles.length) && (
-                <div className="flex justify-center mt-10 mb-8">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={loadingMore}
-                    className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                    data-testid="load-more-button"
-                  >
-                    {loadingMore ? (
-                      <>
-                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                        Loading more articles...
-                      </>
-                    ) : (
-                      <>
-                        <FontAwesomeIcon icon={faArrowDown} className="mr-2" />
-                        Load More Articles
-                      </>
-                    )}
-                  </button>
-                </div>
+              {displayedArticles.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
+                    {displayedArticles.map((article, index) => (
+                      <React.Fragment key={article.id || article.uri}>
+                        <NewsCard article={article} />
+                        {(index + 1) % 10 === 0 && index < displayedArticles.length - 1 && (
+                          <div className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                            <FluidAd className="my-4" />
+                          </div>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+
+                  {(hasMoreArticles || displayedArticles.length < allArticles.length) && (
+                    <div className="flex justify-center mt-8 sm:mt-12">
+                      <button
+                        onClick={handleLoadMore}
+                        disabled={loadingMore}
+                        className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm sm:text-base touch-manipulation"
+                        data-testid="load-more-button"
+                      >
+                        {loadingMore ? (
+                          <>
+                            <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            <FontAwesomeIcon icon={faArrowDown} className="mr-2" />
+                            Load More
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                query && (
+                  <div className="text-center py-12">
+                    <h2 className="text-xl sm:text-2xl font-bold mb-4">No results found</h2>
+                    <p className="text-gray-600 text-sm sm:text-base">
+                      No articles match your search query. Please try different keywords.
+                    </p>
+                  </div>
+                )
               )}
             </>
-          ) : (
-            query && (
-              <div className="text-center py-12">
-                <h2 className="text-2xl font-bold mb-4">No results found</h2>
-                <p className="text-gray-600">
-                  No articles match your search query. Please try different keywords.
-                </p>
-              </div>
-            )
           )}
-        </>
-      )}
+        </div>
+      </div>
+
+      {/* Bottom Reels Slider - Hidden by default, slide up on click */}
+      <div className={`fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ${showReels ? 'translate-y-0' : 'translate-y-full'}`}>
+        <button
+          onClick={() => setShowReels(!showReels)}
+          className="absolute -top-11 sm:-top-10 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 sm:px-6 py-2.5 sm:py-2 rounded-t-xl font-bold text-xs sm:text-sm shadow-lg flex items-center gap-1.5 sm:gap-2 touch-manipulation active:from-pink-600 active:to-purple-700"
+        >
+          <span>🎬</span>
+          <span>Reels</span>
+          <span className={`transition-transform duration-300 ${showReels ? 'rotate-180' : ''}`}>▲</span>
+        </button>
+
+        <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-3 sm:p-4 shadow-2xl max-h-[50vh] sm:max-h-none overflow-y-auto">
+          <div className="max-w-7xl mx-auto">
+            <ReelsSidebar horizontal={true} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

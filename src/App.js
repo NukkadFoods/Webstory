@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import ArticlePage from './pages/ArticlePage';
@@ -47,16 +46,11 @@ function App() {
     console.log('🔧 API URL:', process.env.REACT_APP_API_URL);
   }, []);
 
-  // Check if we're on a page with its own custom header
-  const hasCustomHeader = currentPath === '/' || currentPath.startsWith('/article/');
-
   return (
     <ErrorBoundary>
       <Router>
         <div className="min-h-screen flex flex-col">
-          {/* Hide header on pages that have custom headers */}
-          {!hasCustomHeader && <Header />}
-          <main className={`flex-grow ${!hasCustomHeader ? 'container mx-auto px-4 py-8' : ''}`}>
+          <main className="flex-grow">
             <ErrorBoundary>
               <RouteHandler onLocationChange={setCurrentPath} />
             </ErrorBoundary>

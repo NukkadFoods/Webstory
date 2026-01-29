@@ -435,14 +435,14 @@ const ArticlePage = () => {
         {/* 60/40 Split Layout: Image+Player | Text - Independent Scrolling */}
         <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-3 sm:gap-4 lg:gap-5">
 
-          {/* LEFT SIDE (60%): Image + Audio Player - Sticky on desktop only */}
-          <div className="lg:sticky lg:top-4 lg:self-start flex flex-col">
-            {/* Large Image Container - flexible height, optimized aspect ratio for mobile */}
-            <div className="rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-100 aspect-[4/3] sm:aspect-[16/9] mb-2 flex-shrink-0">
+          {/* LEFT SIDE (60%): Image + Audio Player - Sticky on ALL screens */}
+          <div className="sticky top-0 z-10 self-start flex flex-col bg-white pb-2">
+            {/* Large Image Container - Fixed size, image fits inside without cropping */}
+            <div className="rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-900 mb-2 flex-shrink-0 w-full h-44 sm:h-56 md:h-64 lg:h-80 xl:h-96 flex items-center justify-center">
               <img
                 src={article.imageUrl || article.multimedia?.[0]?.url}
                 alt={article.title}
-                className="w-full h-full object-cover"
+                className="max-w-full max-h-full object-contain"
               />
             </div>
 
@@ -476,10 +476,10 @@ const ArticlePage = () => {
             )}
           </div>
 
-          {/* RIGHT SIDE (40%): Text/Commentary - Independent Scrollable */}
+          {/* RIGHT SIDE (40%): Text/Commentary - Scrollable on all screens */}
           <article
             ref={commentaryScrollRef}
-            className="min-w-0 lg:overflow-y-auto lg:max-h-[calc(100vh-160px)] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent mt-2 lg:mt-0"
+            className="min-w-0 overflow-y-auto max-h-[50vh] sm:max-h-[60vh] lg:max-h-[calc(100vh-160px)] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent mt-2 lg:mt-0"
           >
 
             {/* Forexyy AI Analysis Card - Teleprompter Style - Mobile Optimized */}

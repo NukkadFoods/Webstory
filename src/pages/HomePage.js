@@ -28,6 +28,7 @@ const HomePage = () => {
   const [error, setError] = useState(null);
   const [activeCategory, setActiveCategory] = useState('home');
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [showReels, setShowReels] = useState(false);
 
   // --- Load More Hook (Start with 9 items to fill grid nicely) ---
   const { visibleArticles, hasMore, loading: loadMoreLoading, loadMore } = useLoadMore(filteredArticles, 9);
@@ -114,11 +115,10 @@ const HomePage = () => {
 
       <Header />
 
-      <div className="w-full px-3 sm:pl-4 sm:pr-0 py-4 sm:py-6 md:py-8">
+      <div className="w-full px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 pb-20">
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 sm:gap-6">
-          {/* Main Content - takes remaining space */}
-          <div className="min-w-0">
+        {/* Main Content - Full Width */}
+        <div className="w-full">
 
             {/* Loading State */}
             {loading && (
@@ -152,14 +152,14 @@ const HomePage = () => {
                   </h2>
                   <span className="text-[10px] sm:text-xs text-gray-400 font-medium">Live Updates</span>
                 </div>
-                <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 sm:pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
                   {trendingArticles.map((story, idx) => (
                     <Link
                       key={idx}
                       to={getArticleLink(story)}
-                      className="flex-shrink-0 w-40 sm:w-48 md:w-56 group touch-manipulation"
+                      className="flex-shrink-0 w-64 sm:w-72 md:w-80 group touch-manipulation"
                     >
-                      <div className="relative rounded-xl overflow-hidden bg-gray-100 aspect-[3/4] shadow-sm hover:shadow-xl transition-all duration-300">
+                      <div className="relative rounded-xl overflow-hidden bg-gray-100 h-44 sm:h-48 shadow-md hover:shadow-xl transition-all duration-300">
                         <img
                           src={getImage(story)}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -169,16 +169,16 @@ const HomePage = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
                         {/* Rank badge */}
-                        <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-gray-900 text-[10px] sm:text-xs font-bold w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center shadow">
+                        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shadow">
                           {idx + 1}
                         </div>
 
                         {/* Title overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 p-2.5 sm:p-3">
-                          <span className="text-[9px] sm:text-[10px] font-bold text-blue-300 uppercase tracking-wide">
+                        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
+                          <span className="text-[10px] sm:text-xs font-bold text-blue-300 uppercase tracking-wide">
                             {story.section}
                           </span>
-                          <h4 className="font-bold text-white text-xs sm:text-sm leading-snug line-clamp-2 mt-0.5 group-hover:text-blue-200 transition-colors">
+                          <h4 className="font-bold text-white text-sm sm:text-base leading-snug line-clamp-2 mt-1 group-hover:text-blue-200 transition-colors">
                             {story.title}
                           </h4>
                         </div>
@@ -262,11 +262,25 @@ const HomePage = () => {
                 )}
               </section>
             )}
-          </div>
+        </div>
+      </div>
 
-          {/* Reels Sidebar - Hidden on mobile, visible on desktop */}
-          <div className="hidden lg:block">
-            <ReelsSidebar />
+      {/* Bottom Reels Slider - Hidden by default, slide up on click */}
+      <div className={`fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ${showReels ? 'translate-y-0' : 'translate-y-full'}`}>
+        {/* Reels Tab - Always visible */}
+        <button
+          onClick={() => setShowReels(!showReels)}
+          className="absolute -top-11 sm:-top-10 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 sm:px-6 py-2.5 sm:py-2 rounded-t-xl font-bold text-xs sm:text-sm shadow-lg flex items-center gap-1.5 sm:gap-2 touch-manipulation active:from-pink-600 active:to-purple-700"
+        >
+          <span>🎬</span>
+          <span>Reels</span>
+          <span className={`transition-transform duration-300 ${showReels ? 'rotate-180' : ''}`}>▲</span>
+        </button>
+
+        {/* Reels Content */}
+        <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-3 sm:p-4 shadow-2xl max-h-[50vh] sm:max-h-none overflow-y-auto">
+          <div className="max-w-7xl mx-auto">
+            <ReelsSidebar horizontal={true} />
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ import { getFinanceArticles } from '../services/financeService';
 import NewsCard from '../components/NewsCard';
 import NewsGrid from '../components/NewsGrid';
 import ReelsSidebar from '../components/ReelsSidebar';
+import Header from '../components/Header';
 import FluidAd from '../components/FluidAd';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faSpinner, faChevronRight, faRobot } from '@fortawesome/free-solid-svg-icons';
@@ -16,6 +17,7 @@ const CategoryPage = () => {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showReels, setShowReels] = useState(false);
 
   // Define a mapping of URL categories to display names
   const categoryNames = {
@@ -109,17 +111,19 @@ const CategoryPage = () => {
   const feedArticles = articles.slice(1);
 
   return (
-    <div className="category-page w-full pl-4 pr-0 py-8">
-      <div className="grid grid-cols-[1fr_auto] gap-6">
-        {/* Main Content - takes remaining space */}
-        <div className="min-w-0">
-      
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">{displayName}</h1>
-        <Link to="/" className="mt-2 sm:mt-0 inline-flex items-center text-blue-600 hover:text-blue-700">
-          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Back to home
-        </Link>
-      </div>
+    <div className="category-page min-h-screen bg-gray-50">
+      <Header />
+
+      <div className="w-full px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 pb-20">
+        {/* Main Content - Full Width */}
+        <div className="w-full">
+
+          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{displayName}</h1>
+            <Link to="/" className="mt-2 sm:mt-0 inline-flex items-center text-blue-600 hover:text-blue-700 text-sm sm:text-base">
+              <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Back to home
+            </Link>
+          </div>
 
       {loading && (
         <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
@@ -134,88 +138,80 @@ const CategoryPage = () => {
         </div>
       )}
 
-      {/* Hero Article Section */}
-      {!loading && !error && heroArticle && (
-        <section className="mb-12 animate-fade-in-up">
-          <div className="group relative">
-            <Link to={getArticleLink(heroArticle)} className="block h-full relative overflow-hidden rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500">
-              
-              {/* Image Container */}
-              <div className="aspect-w-16 aspect-h-10 lg:h-[500px] w-full overflow-hidden bg-gray-200">
-                <img 
-                  src={getImage(heroArticle)} 
-                  alt={heroArticle.title}
-                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-              </div>
+          {/* Hero Article Section - Clean Design */}
+          {!loading && !error && heroArticle && (
+            <section className="mb-6 sm:mb-8">
+              <Link to={getArticleLink(heroArticle)} className="group block relative overflow-hidden rounded-xl sm:rounded-2xl shadow-md hover:shadow-xl transition-all duration-500 touch-manipulation">
+                {/* Image Container */}
+                <div className="aspect-[4/3] sm:aspect-[16/9] lg:aspect-[21/9] w-full overflow-hidden bg-gray-200">
+                  <img
+                    src={getImage(heroArticle)}
+                    alt={heroArticle.title}
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                </div>
 
-              {/* Text Overlay */}
-              <div className="absolute bottom-0 left-0 p-6 md:p-10 w-full z-10">
-                
-                {/* Tags Row */}
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="bg-blue-600 text-white text-[10px] md:text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
+                {/* Text Overlay - Simplified */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 lg:p-10">
+                  <span className="inline-block bg-blue-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase tracking-wider mb-2 sm:mb-3">
                     {heroArticle.section || displayName}
                   </span>
-                  {heroArticle.commentary && (
-                    <span className="backdrop-blur-md bg-white/20 border border-white/30 text-white text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-                      <FontAwesomeIcon icon={faRobot} className="text-indigo-300" /> 
-                      <span>AI Analysis Ready</span>
-                    </span>
-                  )}
+
+                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-white leading-tight font-serif group-hover:text-blue-200 transition-colors">
+                    {heroArticle.title}
+                  </h1>
                 </div>
+              </Link>
+            </section>
+          )}
 
-                <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white leading-tight mb-4 font-serif text-shadow-sm">
-                  {heroArticle.title}
-                </h1>
-                
-                <p className="hidden md:block text-gray-200 text-lg line-clamp-2 max-w-3xl mb-6 leading-relaxed">
-                  {heroArticle.abstract || heroArticle.summary}
-                </p>
-
-                <div className="flex items-center text-gray-300 text-sm font-medium">
-                  <span className="uppercase tracking-widest text-xs">{heroArticle.byline || 'Forexyy Team'}</span>
-                  <span className="mx-2">•</span> 
-                  <span className="text-blue-300 group-hover:text-blue-200 transition-colors flex items-center gap-1">
-                    Read Full Story <FontAwesomeIcon icon={faChevronRight} className="text-[10px]" />
-                  </span>
+          {/* Main Feed Grid */}
+          {!loading && !error && feedArticles.length > 0 && (
+            <section>
+              <div className="flex items-end justify-between mb-4 sm:mb-6 border-b border-gray-100 pb-3 sm:pb-4">
+                <div>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Latest in {displayName}</h2>
+                  <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1 hidden sm:block">Stay updated with the latest stories</p>
                 </div>
               </div>
-            </Link>
-          </div>
-        </section>
-      )}
 
-      {/* Main Feed Grid */}
-      {!loading && !error && feedArticles.length > 0 && (
-        <section>
-          <div className="flex items-end justify-between mb-6 border-b border-gray-100 pb-4">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Latest in {displayName}</h2>
-              <p className="text-gray-500 mt-1">Stay updated with the latest stories</p>
+              <NewsGrid
+                articles={feedArticles}
+                loading={false}
+                error={null}
+              />
+            </section>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && articles.length === 0 && (
+            <div className="text-center py-12">
+              <h2 className="text-xl sm:text-2xl font-bold mb-4">No articles found</h2>
+              <p className="text-gray-600 text-sm sm:text-base">No articles are currently available for this category.</p>
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Reels Slider - Hidden by default, slide up on click */}
+      <div className={`fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ${showReels ? 'translate-y-0' : 'translate-y-full'}`}>
+        {/* Reels Tab - Always visible */}
+        <button
+          onClick={() => setShowReels(!showReels)}
+          className="absolute -top-11 sm:-top-10 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 sm:px-6 py-2.5 sm:py-2 rounded-t-xl font-bold text-xs sm:text-sm shadow-lg flex items-center gap-1.5 sm:gap-2 touch-manipulation active:from-pink-600 active:to-purple-700"
+        >
+          <span>🎬</span>
+          <span>Reels</span>
+          <span className={`transition-transform duration-300 ${showReels ? 'rotate-180' : ''}`}>▲</span>
+        </button>
+
+        {/* Reels Content */}
+        <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-3 sm:p-4 shadow-2xl max-h-[50vh] sm:max-h-none overflow-y-auto">
+          <div className="max-w-7xl mx-auto">
+            <ReelsSidebar horizontal={true} />
           </div>
-
-          <NewsGrid 
-            articles={feedArticles} 
-            loading={false} 
-            error={null} 
-          />
-        </section>
-      )}
-
-      {/* Empty State */}
-      {!loading && !error && articles.length === 0 && (
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold mb-4">No articles found</h2>
-          <p className="text-gray-600">No articles are currently available for this category.</p>
         </div>
-      )}
-        </div>
-
-        {/* Reels Sidebar - 4 columns */}
-        <ReelsSidebar />
       </div>
     </div>
   );
