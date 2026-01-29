@@ -598,13 +598,12 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                     <button
                         onClick={handlePlay}
                         disabled={isLoading || (!isPreloaded && !isPlaying)}
-                        className={`flex items-center justify-center w-12 h-12 sm:w-11 sm:h-11 rounded-full transition-all flex-shrink-0 touch-manipulation ${
-                            isLoading || (!isPreloaded && !isPlaying && !error)
+                        className={`flex items-center justify-center w-12 h-12 sm:w-11 sm:h-11 rounded-full transition-all flex-shrink-0 touch-manipulation ${isLoading || (!isPreloaded && !isPlaying && !error)
                                 ? 'bg-gray-600 cursor-not-allowed opacity-70'
                                 : isPreloaded && !isPlaying
                                     ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 active:from-green-700 active:to-green-600 text-white shadow-lg shadow-green-500/30 animate-pulse'
                                     : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 active:from-blue-700 active:to-blue-600 text-white shadow-lg shadow-blue-500/30'
-                        }`}
+                            }`}
                     >
                         {isLoading || (!isPreloaded && !isPlaying && !error) ? (
                             <Loader size={20} className="animate-spin" />
@@ -625,13 +624,13 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                                 style={{ width: `${progress}%` }}
                             />
 
-                            {/* Section Markers (Yellow) - Smaller on mobile */}
+                            {/* Section Markers (Yellow) - Tiny on mobile */}
                             {sectionTimestamps.map((ts, idx) => (
                                 idx > 0 && (
                                     <button
                                         key={idx}
                                         onClick={() => jumpToSection(idx)}
-                                        className="absolute top-1/2 -translate-y-1/2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-yellow-400 rounded-full border border-gray-900 sm:hover:scale-125 active:scale-110 transition-transform z-10 cursor-pointer touch-manipulation"
+                                        className="absolute top-1/2 -translate-y-1/2 w-1 h-1 sm:w-1.5 sm:h-1.5 bg-yellow-400 rounded-full border border-gray-900 sm:hover:scale-125 active:scale-110 transition-transform z-10 cursor-pointer touch-manipulation"
                                         style={{ left: `${(ts.start / duration) * 100}%` }}
                                         title={`Jump to ${sections[idx]?.title}`}
                                         disabled={!audioUrl}
