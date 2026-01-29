@@ -525,65 +525,65 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
 
     return (
         <div className="w-full">
-            {/* Main Player Card - Compact */}
-            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-xl p-3 shadow-xl border border-gray-700">
+            {/* Main Player Card - Compact & Mobile Optimized */}
+            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-lg sm:rounded-xl p-2.5 sm:p-3 shadow-xl border border-gray-700">
 
-                {/* Reporter Info Row - Compact */}
-                <div className="flex items-center gap-3 mb-3">
-                    {/* Avatar - Smaller */}
+                {/* Reporter Info Row - Compact & Mobile Optimized */}
+                <div className="flex items-center gap-2 sm:gap-3 mb-2.5 sm:mb-3">
+                    {/* Avatar - Responsive size */}
                     <div className="relative flex-shrink-0">
                         <img
                             src="/images/rachel-anderson.jpeg"
                             alt="Rachel Anderson"
-                            className="w-10 h-10 rounded-full object-cover shadow-lg border-2 border-blue-500"
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-lg border-2 border-blue-500"
                             onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
                             }}
                         />
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-bold text-sm shadow-lg hidden">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-bold text-xs sm:text-sm shadow-lg hidden">
                             RA
                         </div>
                         {isPlaying && (
-                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse"></span>
+                            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse"></span>
                         )}
                     </div>
 
-                    {/* Name & Title - Compact */}
+                    {/* Name & Title - Compact & Mobile Optimized */}
                     <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-bold text-sm leading-tight">
+                        <h3 className="text-white font-bold text-xs sm:text-sm leading-tight">
                             Rachel Anderson
                         </h3>
-                        <p className="text-blue-400 text-[10px] font-medium uppercase tracking-wider truncate">
+                        <p className="text-blue-400 text-[9px] sm:text-[10px] font-medium uppercase tracking-wider truncate">
                             Senior Forexyy Reporter
                         </p>
                     </div>
 
                     {/* Live Badge */}
                     {isPlaying && (
-                        <div className="flex items-center gap-1.5 bg-red-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
+                        <div className="flex items-center gap-1 sm:gap-1.5 bg-red-500/20 px-1.5 sm:px-2 py-0.5 rounded-full flex-shrink-0">
                             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
-                            <span className="text-red-400 text-[10px] font-bold uppercase">Live</span>
+                            <span className="text-red-400 text-[9px] sm:text-[10px] font-bold uppercase">Live</span>
                         </div>
                     )}
                 </div>
 
-                {/* Clickable Section Buttons - Compact */}
+                {/* Clickable Section Buttons - Compact & Mobile Optimized */}
                 {sections.length > 1 && (
-                    <div className="mb-2 flex gap-1.5">
+                    <div className="mb-2 flex gap-1 sm:gap-1.5">
                         {sections.map((section, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => jumpToSection(idx)}
                                 disabled={!audioUrl}
-                                className={`flex-1 text-center py-1.5 px-1.5 rounded-md text-[10px] font-medium transition-all cursor-pointer
+                                className={`flex-1 text-center py-1.5 sm:py-1.5 px-1 sm:px-1.5 rounded-md text-[9px] sm:text-[10px] font-medium transition-all cursor-pointer touch-manipulation
                                     ${idx === currentSection
                                         ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
                                         : idx < currentSection
-                                            ? 'bg-blue-900/50 text-blue-300 hover:bg-blue-800/50'
-                                            : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50'
+                                            ? 'bg-blue-900/50 text-blue-300 hover:bg-blue-800/50 active:bg-blue-800/70'
+                                            : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50 active:bg-gray-600/70'
                                     }
-                                    ${!audioUrl ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}
+                                    ${!audioUrl ? 'opacity-50 cursor-not-allowed' : 'sm:hover:scale-105'}
                                 `}
                             >
                                 {section.title}
@@ -592,18 +592,18 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                     </div>
                 )}
 
-                {/* Controls Row - Compact */}
-                <div className="flex items-center gap-3">
-                    {/* Play/Pause Button - Smaller */}
+                {/* Controls Row - Compact & Mobile Optimized */}
+                <div className="flex items-center gap-2 sm:gap-3">
+                    {/* Play/Pause Button - Larger touch target on mobile */}
                     <button
                         onClick={handlePlay}
                         disabled={isLoading || (!isPreloaded && !isPlaying)}
-                        className={`flex items-center justify-center w-11 h-11 rounded-full transition-all flex-shrink-0 ${
+                        className={`flex items-center justify-center w-12 h-12 sm:w-11 sm:h-11 rounded-full transition-all flex-shrink-0 touch-manipulation ${
                             isLoading || (!isPreloaded && !isPlaying && !error)
                                 ? 'bg-gray-600 cursor-not-allowed opacity-70'
                                 : isPreloaded && !isPlaying
-                                    ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white shadow-lg shadow-green-500/30 animate-pulse'
-                                    : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/30'
+                                    ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 active:from-green-700 active:to-green-600 text-white shadow-lg shadow-green-500/30 animate-pulse'
+                                    : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 active:from-blue-700 active:to-blue-600 text-white shadow-lg shadow-blue-500/30'
                         }`}
                     >
                         {isLoading || (!isPreloaded && !isPlaying && !error) ? (
@@ -615,23 +615,23 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                         )}
                     </button>
 
-                    {/* Seekbar & Time */}
-                    <div className="flex-1">
-                        {/* Seekbar with Section Markers */}
-                        <div className="relative h-2 bg-gray-700 rounded-full overflow-visible">
+                    {/* Seekbar & Time - Mobile Optimized */}
+                    <div className="flex-1 min-w-0">
+                        {/* Seekbar with Section Markers - Taller touch target on mobile */}
+                        <div className="relative h-3 sm:h-2 bg-gray-700 rounded-full overflow-visible">
                             {/* Progress Fill */}
                             <div
                                 className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all"
                                 style={{ width: `${progress}%` }}
                             />
 
-                            {/* Section Markers (Yellow) */}
+                            {/* Section Markers (Yellow) - Larger on mobile */}
                             {sectionTimestamps.map((ts, idx) => (
                                 idx > 0 && (
                                     <button
                                         key={idx}
                                         onClick={() => jumpToSection(idx)}
-                                        className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-yellow-400 rounded-full border border-gray-900 hover:scale-125 transition-transform z-10 cursor-pointer"
+                                        className="absolute top-1/2 -translate-y-1/2 w-3 h-3 sm:w-2.5 sm:h-2.5 bg-yellow-400 rounded-full border border-gray-900 sm:hover:scale-125 active:scale-110 transition-transform z-10 cursor-pointer touch-manipulation"
                                         style={{ left: `${(ts.start / duration) * 100}%` }}
                                         title={`Jump to ${sections[idx]?.title}`}
                                         disabled={!audioUrl}
@@ -639,49 +639,49 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                                 )
                             ))}
 
-                            {/* Range Input (invisible but functional) */}
+                            {/* Range Input (invisible but functional) - Taller on mobile for easier touch */}
                             <input
                                 type="range"
                                 min="0"
                                 max={duration || 0}
                                 value={currentTime}
                                 onChange={handleSeek}
-                                className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-20"
+                                className="absolute top-1/2 -translate-y-1/2 left-0 w-full h-8 sm:h-full opacity-0 cursor-pointer z-20 touch-manipulation"
                                 disabled={!audioUrl}
                             />
                         </div>
 
                         {/* Timestamps */}
                         <div className="flex justify-between mt-0.5">
-                            <span className="text-gray-400 text-[10px] font-mono">
+                            <span className="text-gray-400 text-[9px] sm:text-[10px] font-mono">
                                 {formatTime(currentTime)}
                             </span>
-                            <span className="text-gray-500 text-[10px] font-mono">
+                            <span className="text-gray-500 text-[9px] sm:text-[10px] font-mono">
                                 {formatTime(duration)}
                             </span>
                         </div>
                     </div>
 
-                    {/* Mute Button */}
+                    {/* Mute Button - Larger touch target on mobile */}
                     <button
                         onClick={toggleMute}
-                        className="p-1.5 text-gray-400 hover:text-white transition flex-shrink-0"
+                        className="p-2 sm:p-1.5 text-gray-400 hover:text-white active:text-blue-400 transition flex-shrink-0 touch-manipulation"
                     >
                         {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                     </button>
                 </div>
 
-                {/* Status Message - Compact inline */}
+                {/* Status Message - Compact inline & Mobile Optimized */}
                 {(error || isLoading || (!isPlaying && !isPreloaded)) && (
-                    <div className="mt-2 text-center">
+                    <div className="mt-1.5 sm:mt-2 text-center">
                         {error && (
-                            <span className="text-red-400 text-[10px]">{error}</span>
+                            <span className="text-red-400 text-[9px] sm:text-[10px]">{error}</span>
                         )}
                         {isLoading && (
-                            <span className="text-blue-400 text-[10px]">Generating audio...</span>
+                            <span className="text-blue-400 text-[9px] sm:text-[10px]">Generating audio...</span>
                         )}
                         {!isLoading && !isPlaying && !isPreloaded && !error && (
-                            <span className="text-gray-400 text-[10px] flex items-center justify-center gap-1">
+                            <span className="text-gray-400 text-[9px] sm:text-[10px] flex items-center justify-center gap-1">
                                 <Loader size={10} className="animate-spin" />
                                 Preparing audio...
                             </span>

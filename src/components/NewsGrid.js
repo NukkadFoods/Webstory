@@ -45,11 +45,11 @@ const NewsGrid = ({ articles: initialArticles, loading: initialLoading, error })
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-5">
       {displayArticles.map((article, index) => (
-        <NewsCard 
-          key={article.uri || article.id || article.title || index} 
-          article={article} 
+        <NewsCard
+          key={article.uri || article.id || article.title || index}
+          article={article}
         />
       ))}
     </div>

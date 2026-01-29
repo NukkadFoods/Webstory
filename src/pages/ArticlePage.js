@@ -383,8 +383,8 @@ const ArticlePage = () => {
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center"><FontAwesomeIcon icon={faBolt} spin size="2x" className="text-blue-600" /></div>;
-  if (error) return <div className="text-center py-20 text-red-600">{error}</div>;
-  if (!article) return <div className="text-center py-20">Article not found</div>;
+  if (error) return <div className="text-center py-20 px-4 text-red-600">{error}</div>;
+  if (!article) return <div className="text-center py-20 px-4">Article not found</div>;
 
   return (
     <div className="bg-white min-h-screen font-sans selection:bg-blue-100">
@@ -392,16 +392,16 @@ const ArticlePage = () => {
       {/* Progress Bar */}
       <div className="fixed top-0 left-0 h-1 bg-blue-600 z-50" style={{ width: `${scrollProgress * 100}%` }} />
 
-      {/* Compact Floating Indicator - only shows section info */}
+      {/* Compact Floating Indicator - only shows section info - Mobile optimized */}
       {audioProgress.isPlaying && (
-        <div className="fixed bottom-4 right-4 z-50 animate-fadeIn">
-          <div className="bg-gray-900/90 backdrop-blur text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-3 text-sm">
+        <div className="fixed bottom-16 sm:bottom-4 right-2 sm:right-4 z-50 animate-fadeIn">
+          <div className="bg-gray-900/90 backdrop-blur text-white px-3 sm:px-4 py-2 rounded-full shadow-lg flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
             <div className="flex items-center gap-0.5">
               <span className="w-0.5 h-2 bg-blue-400 rounded animate-pulse"></span>
               <span className="w-0.5 h-3 bg-blue-400 rounded animate-pulse delay-75"></span>
               <span className="w-0.5 h-2 bg-blue-400 rounded animate-pulse delay-150"></span>
             </div>
-            <span>
+            <span className="whitespace-nowrap">
               {audioSection === 0 ? '🔑 Key Points' :
                audioSection === 1 ? '📊 Impact' :
                audioSection === 2 ? '🔮 Outlook' :
@@ -412,7 +412,7 @@ const ArticlePage = () => {
                 onClick={() => setAutoScrollEnabled(true)}
                 className="text-xs text-blue-400 underline"
               >
-                Resume scroll
+                Resume
               </button>
             )}
           </div>
@@ -421,24 +421,24 @@ const ArticlePage = () => {
 
       <Header />
 
-      {/* Main Layout - 50/50 Split */}
-      <main className="w-full px-4 py-4">
+      {/* Main Layout - Responsive */}
+      <main className="w-full px-3 sm:px-4 py-3 sm:py-4">
         {/* Title Section - Full Width */}
-        <div className="mb-4">
-          <div className="flex gap-2 mb-3">
-            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
-            <span className="text-gray-400 text-xs py-1"><FontAwesomeIcon icon={faClock} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
+        <div className="mb-3 sm:mb-4">
+          <div className="flex flex-wrap gap-2 mb-2 sm:mb-3">
+            <span className="bg-blue-100 text-blue-800 text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
+            <span className="text-gray-400 text-[10px] sm:text-xs py-1"><FontAwesomeIcon icon={faClock} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 leading-tight font-serif">{article.title}</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight font-serif">{article.title}</h1>
         </div>
 
         {/* 60/40 Split Layout: Image+Player | Text - Independent Scrolling */}
-        <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-4 lg:gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-3 sm:gap-4 lg:gap-5">
 
-          {/* LEFT SIDE (60%): Image + Audio Player - Sticky */}
+          {/* LEFT SIDE (60%): Image + Audio Player - Sticky on desktop only */}
           <div className="lg:sticky lg:top-4 lg:self-start flex flex-col">
-            {/* Large Image Container - flexible height */}
-            <div className="rounded-xl overflow-hidden shadow-lg bg-gray-100 aspect-[16/9] mb-2 flex-shrink-0">
+            {/* Large Image Container - flexible height, optimized aspect ratio for mobile */}
+            <div className="rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-100 aspect-[4/3] sm:aspect-[16/9] mb-2 flex-shrink-0">
               <img
                 src={article.imageUrl || article.multimedia?.[0]?.url}
                 alt={article.title}
@@ -461,7 +461,7 @@ const ArticlePage = () => {
                   <div className="flex justify-center mt-2">
                     <button
                       onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 sm:py-1 rounded-full text-xs font-medium transition-all touch-manipulation ${
                         autoScrollEnabled
                           ? 'bg-green-600 text-white'
                           : 'bg-gray-700 text-gray-300'
@@ -479,31 +479,32 @@ const ArticlePage = () => {
           {/* RIGHT SIDE (40%): Text/Commentary - Independent Scrollable */}
           <article
             ref={commentaryScrollRef}
-            className="min-w-0 lg:overflow-y-auto lg:max-h-[calc(100vh-160px)] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
+            className="min-w-0 lg:overflow-y-auto lg:max-h-[calc(100vh-160px)] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent mt-2 lg:mt-0"
           >
 
-            {/* Forexyy AI Analysis Card - Teleprompter Style */}
+            {/* Forexyy AI Analysis Card - Teleprompter Style - Mobile Optimized */}
             {displayedCommentary || article.aiCommentary ? (
               <div
                 ref={commentaryContainerRef}
-                className={`bg-white border-2 rounded-xl overflow-hidden shadow-lg transition-all duration-300 ${
+                className={`bg-white border-2 rounded-lg sm:rounded-xl overflow-hidden shadow-lg transition-all duration-300 ${
                   audioProgress.isPlaying ? 'border-blue-400' : 'border-blue-600'
                 }`}
               >
-                {/* Compact Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3">
+                {/* Compact Header - Mobile Optimized */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 sm:px-4 py-2.5 sm:py-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-white font-bold text-base flex items-center gap-2">
-                      <FontAwesomeIcon icon={faBolt} className="text-yellow-300" />
-                      FOREXYY INSIGHT
-                      {isTyping && <span className="text-xs text-blue-200 animate-pulse ml-2">✍️</span>}
+                    <h3 className="text-white font-bold text-sm sm:text-base flex items-center gap-1.5 sm:gap-2">
+                      <FontAwesomeIcon icon={faBolt} className="text-yellow-300 text-sm" />
+                      <span className="hidden xs:inline">FOREXYY INSIGHT</span>
+                      <span className="inline xs:hidden">INSIGHT</span>
+                      {isTyping && <span className="text-[10px] sm:text-xs text-blue-200 animate-pulse ml-1 sm:ml-2">✍️</span>}
                     </h3>
-                    <FontAwesomeIcon icon={faRobot} className="text-white/70" />
+                    <FontAwesomeIcon icon={faRobot} className="text-white/70 text-sm sm:text-base" />
                   </div>
                 </div>
 
-                {/* Content - Teleprompter Style with more line height */}
-                <div className="p-4 md:p-5">
+                {/* Content - Teleprompter Style with more line height - Mobile Optimized */}
+                <div className="p-3 sm:p-4 md:p-5">
                   {(() => {
                     // Smart parser: Split commentary into 3 sections
                     const text = displayedCommentary;
@@ -562,18 +563,18 @@ const ArticlePage = () => {
                       return (
                         <div
                           key={idx}
-                          className={`mb-4 last:mb-0 transition-all duration-200 ${isActiveSection ? '' : ''}`}
+                          className={`mb-3 sm:mb-4 last:mb-0 transition-all duration-200 ${isActiveSection ? '' : ''}`}
                         >
-                          {/* Compact Section Header */}
-                          <div className={`px-3 py-2 rounded-lg mb-2 transition-all duration-200 ${isActiveSection
+                          {/* Compact Section Header - Mobile Optimized */}
+                          <div className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg mb-1.5 sm:mb-2 transition-all duration-200 ${isActiveSection
                             ? 'bg-blue-600 shadow-md'
                             : isPastSection
                               ? 'bg-blue-100'
                               : 'bg-gray-100'
                             }`}>
-                            <h4 className={`text-sm font-bold flex items-center gap-2 ${isActiveSection ? 'text-white' : 'text-blue-900'
+                            <h4 className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 ${isActiveSection ? 'text-white' : 'text-blue-900'
                               }`}>
-                              <span className="text-lg">{section.icon}</span>
+                              <span className="text-base sm:text-lg">{section.icon}</span>
                               <span>{section.title}</span>
                               {isActiveSection && (
                                 <span className="ml-auto flex items-center gap-0.5">
@@ -585,11 +586,11 @@ const ArticlePage = () => {
                             </h4>
                           </div>
 
-                          {/* Section Content - Teleprompter Style */}
-                          <div className={`pl-4 pr-2 transition-all duration-200 ${
+                          {/* Section Content - Teleprompter Style - Mobile Optimized */}
+                          <div className={`pl-2.5 sm:pl-4 pr-1.5 sm:pr-2 transition-all duration-200 ${
                             isActiveSection ? 'opacity-100' : isPastSection ? 'opacity-60' : 'opacity-40'
                           }`}>
-                            <div className={`text-lg leading-relaxed ${isActiveSection ? 'text-gray-900' : 'text-gray-600'}`}>
+                            <div className={`text-sm sm:text-base lg:text-lg leading-relaxed ${isActiveSection ? 'text-gray-900' : 'text-gray-600'}`}>
                               {(() => {
                                 // Split content into sentences for highlighting
                                 const sentences = section.content
@@ -608,12 +609,12 @@ const ArticlePage = () => {
                                   if (isActiveSection && audioProgress.isPlaying && audioProgress.isReadingHeader && audioProgress.sectionIndex === idx) {
                                     return (
                                       <div>
-                                        <span className="text-blue-500 text-sm italic mb-1 block">🎙️ Reading title...</span>
-                                        <span className="text-gray-400">{section.content}</span>
+                                        <span className="text-blue-500 text-xs sm:text-sm italic mb-1 block">🎙️ Reading title...</span>
+                                        <span className="text-gray-400 text-sm sm:text-base lg:text-lg">{section.content}</span>
                                       </div>
                                     );
                                   }
-                                  return <span className="text-gray-600">{section.content}</span>;
+                                  return <span className="text-gray-600 text-sm sm:text-base lg:text-lg">{section.content}</span>;
                                 }
 
                                 // Calculate which sentence is currently being read using WEIGHTED progress
@@ -656,7 +657,7 @@ const ArticlePage = () => {
                                 }
 
                                 return (
-                                  <div className="space-y-2">
+                                  <div className="space-y-1.5 sm:space-y-2">
                                     {sentences.map((sentence, sentenceIdx) => {
                                       const isCurrentSentence = sentenceIdx === currentSentenceIndex;
                                       const isPastSentence = sentenceIdx < currentSentenceIndex;
@@ -682,7 +683,7 @@ const ArticlePage = () => {
                                         }
 
                                         return (
-                                          <p key={sentenceIdx} className="text-gray-900 leading-relaxed text-lg">
+                                          <p key={sentenceIdx} className="text-gray-900 leading-relaxed text-sm sm:text-base lg:text-lg">
                                             {words.map((word, wordIdx) => {
                                               const isCurrentWord = wordIdx === currentWordIndex;
                                               const isPastWord = wordIdx < currentWordIndex;
@@ -692,9 +693,9 @@ const ArticlePage = () => {
                                                   key={`${idx}-${sentenceIdx}-${wordIdx}`}
                                                   ref={isCurrentWord ? highlightedWordRef : null}
                                                   data-highlighted={isCurrentWord ? 'true' : undefined}
-                                                  className={`inline-block mr-1.5 rounded px-1 py-0.5 ${
+                                                  className={`inline-block mr-1 sm:mr-1.5 rounded px-0.5 sm:px-1 py-0.5 ${
                                                     isCurrentWord
-                                                      ? 'bg-yellow-400 text-gray-900 font-bold shadow-md ring-2 ring-yellow-500'
+                                                      ? 'bg-yellow-400 text-gray-900 font-bold shadow-md ring-1 sm:ring-2 ring-yellow-500'
                                                       : isPastWord
                                                         ? 'text-gray-700'
                                                         : 'text-gray-400'
@@ -711,7 +712,7 @@ const ArticlePage = () => {
                                       return (
                                         <p
                                           key={sentenceIdx}
-                                          className={`leading-relaxed text-lg transition-colors duration-200 ${
+                                          className={`leading-relaxed text-sm sm:text-base lg:text-lg transition-colors duration-200 ${
                                             isPastSentence
                                               ? 'text-gray-800' // Already read
                                               : 'text-gray-400' // Coming up
@@ -736,8 +737,8 @@ const ArticlePage = () => {
 
                   {/* Compact Footer */}
                   {!isTyping && !audioProgress.isPlaying && (
-                    <div className="mt-4 pt-3 border-t border-gray-100">
-                      <p className="text-xs text-gray-400 text-center">
+                    <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-gray-100">
+                      <p className="text-[10px] sm:text-xs text-gray-400 text-center">
                         Forexyy Newsletter • AI-Enhanced Journalism
                       </p>
                     </div>
@@ -745,14 +746,14 @@ const ArticlePage = () => {
                 </div>
               </div>
             ) : (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200 mb-8">
-                <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 rounded-lg sm:rounded-xl border border-blue-200 mb-6 sm:mb-8">
+                <div className="flex items-center gap-2.5 sm:gap-3">
                   <div className="animate-spin">
-                    <FontAwesomeIcon icon={faRobot} className="text-blue-600 text-2xl" />
+                    <FontAwesomeIcon icon={faRobot} className="text-blue-600 text-xl sm:text-2xl" />
                   </div>
                   <div>
-                    <p className="text-blue-900 font-semibold">Forexyy AI Analysis Generating...</p>
-                    <p className="text-blue-600 text-sm">Our team is analyzing this article for you</p>
+                    <p className="text-blue-900 font-semibold text-sm sm:text-base">Forexyy AI Analysis Generating...</p>
+                    <p className="text-blue-600 text-xs sm:text-sm">Our team is analyzing this article for you</p>
                   </div>
                 </div>
               </div>
@@ -761,8 +762,8 @@ const ArticlePage = () => {
 
         </div>
 
-        {/* Article Body - Full Width Below */}
-        <div className="mt-8 prose prose-lg max-w-none text-gray-800 leading-relaxed font-serif">
+        {/* Article Body - Full Width Below - Mobile Optimized */}
+        <div className="mt-6 sm:mt-8 prose prose-sm sm:prose-base lg:prose-lg max-w-none text-gray-800 leading-relaxed font-serif">
           {article.content ? (
             <div dangerouslySetInnerHTML={{ __html: article.content }} />
           ) : (
@@ -770,47 +771,47 @@ const ArticlePage = () => {
           )}
         </div>
 
-        {/* Action Bar */}
-        <div className="mt-8 flex items-center gap-4 border-t border-gray-100 pt-6">
+        {/* Action Bar - Mobile Optimized */}
+        <div className="mt-6 sm:mt-8 flex flex-wrap items-center gap-2 sm:gap-4 border-t border-gray-100 pt-4 sm:pt-6">
           <button
             onClick={handleShare}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium transition"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full text-xs sm:text-sm font-medium transition touch-manipulation"
           >
             <FontAwesomeIcon icon={faShare} /> Share
           </button>
           <button
             onClick={handleBookmark}
-            className={`flex items-center gap-2 px-4 py-2 ${bookmarked ? 'bg-blue-100 text-blue-600' : 'bg-gray-100'} hover:bg-gray-200 rounded-full text-sm font-medium transition`}
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 ${bookmarked ? 'bg-blue-100 text-blue-600' : 'bg-gray-100'} hover:bg-gray-200 active:bg-gray-300 rounded-full text-xs sm:text-sm font-medium transition touch-manipulation`}
           >
             <FontAwesomeIcon icon={faBookmark} /> {bookmarked ? 'Saved' : 'Save'}
           </button>
           <div className="ml-auto flex gap-2">
-            <button className="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full"><FontAwesomeIcon icon={faTwitter} /></button>
-            <button className="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full"><FontAwesomeIcon icon={faFacebook} /></button>
+            <button className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full active:bg-blue-100 touch-manipulation"><FontAwesomeIcon icon={faTwitter} /></button>
+            <button className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full active:bg-blue-100 touch-manipulation"><FontAwesomeIcon icon={faFacebook} /></button>
           </div>
         </div>
 
-        {/* RELATED ARTICLES */}
+        {/* RELATED ARTICLES - Mobile Optimized */}
         {relatedArticles.length > 0 && (
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
-              <span className="w-1 h-5 bg-blue-600 rounded-full"></span>
+          <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2 mb-3 sm:mb-4">
+              <span className="w-1 h-4 sm:h-5 bg-blue-600 rounded-full"></span>
               Related Articles
             </h3>
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x -mx-3 px-3 sm:mx-0 sm:px-0">
               {relatedArticles.map((relArticle, index) => (
                 <Link
                   key={`related-${relArticle.id}-${index}`}
                   to={`/article/${encodeURIComponent(relArticle.url || relArticle.id)}`}
-                  className="flex-none w-64 group snap-start"
+                  className="flex-none w-48 sm:w-56 md:w-64 group snap-start"
                 >
-                  <div className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all h-full">
+                  <div className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:border-blue-200 active:border-blue-300 hover:shadow-lg transition-all h-full touch-manipulation">
                     {relArticle.multimedia?.[0]?.url && (
-                      <img src={relArticle.multimedia[0].url} alt={relArticle.title} className="w-full h-36 object-cover" />
+                      <img src={relArticle.multimedia[0].url} alt={relArticle.title} className="w-full h-28 sm:h-32 md:h-36 object-cover" />
                     )}
-                    <div className="p-3">
-                      <span className="text-xs font-semibold text-blue-600 uppercase">{relArticle.section}</span>
-                      <h4 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 line-clamp-2 mt-1">{relArticle.title}</h4>
+                    <div className="p-2.5 sm:p-3">
+                      <span className="text-[10px] sm:text-xs font-semibold text-blue-600 uppercase">{relArticle.section}</span>
+                      <h4 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-blue-600 line-clamp-2 mt-1">{relArticle.title}</h4>
                     </div>
                   </div>
                 </Link>
@@ -820,12 +821,12 @@ const ArticlePage = () => {
         )}
       </main>
 
-      {/* Bottom Reels Slider - Hidden by default, slide up on click */}
-      <div className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ${showReels ? 'translate-y-0' : 'translate-y-full'}`}>
-        {/* Reels Tab - Always visible */}
+      {/* Bottom Reels Slider - Hidden by default, slide up on click - Mobile Optimized */}
+      <div className={`fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ${showReels ? 'translate-y-0' : 'translate-y-full'}`}>
+        {/* Reels Tab - Always visible - Larger touch target on mobile */}
         <button
           onClick={() => setShowReels(!showReels)}
-          className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-t-xl font-bold text-sm shadow-lg flex items-center gap-2"
+          className="absolute -top-11 sm:-top-10 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 sm:px-6 py-2.5 sm:py-2 rounded-t-xl font-bold text-xs sm:text-sm shadow-lg flex items-center gap-1.5 sm:gap-2 touch-manipulation active:from-pink-600 active:to-purple-700"
         >
           <span>🎬</span>
           <span>Reels</span>
@@ -833,7 +834,7 @@ const ArticlePage = () => {
         </button>
 
         {/* Reels Content */}
-        <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-4 shadow-2xl">
+        <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-3 sm:p-4 shadow-2xl max-h-[50vh] sm:max-h-none overflow-y-auto">
           <div className="max-w-7xl mx-auto">
             <ReelsSidebar horizontal={true} />
           </div>

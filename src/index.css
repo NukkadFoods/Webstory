@@ -101,3 +101,70 @@ code {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Mobile-specific optimizations */
+@media (max-width: 640px) {
+  /* Prevent text selection on touch interactions for better UX */
+  .touch-manipulation {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Smoother scrolling on mobile */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-pulse,
+    .animate-spin,
+    .animate-fadeIn {
+      animation: none;
+    }
+  }
+
+  /* Better tap targets for mobile */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent horizontal overflow on mobile */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Adjust prose for mobile readability */
+  .prose {
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+
+  .prose p {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Extra small screens (< 375px) */
+@media (max-width: 374px) {
+  .prose {
+    font-size: 0.9rem;
+  }
+
+  /* Even smaller text for very small screens */
+  .text-xs {
+    font-size: 0.65rem;
+  }
+}
+
+/* Safe area insets for notched phones */
+@supports (padding: max(0px)) {
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-area-top {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+}

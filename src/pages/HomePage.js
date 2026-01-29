@@ -114,9 +114,9 @@ const HomePage = () => {
 
       <Header />
 
-      <div className="w-full pl-4 pr-0 py-8">
+      <div className="w-full px-3 sm:pl-4 sm:pr-0 py-4 sm:py-6 md:py-8">
 
-        <div className="grid grid-cols-[1fr_auto] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 sm:gap-6">
           {/* Main Content - takes remaining space */}
           <div className="min-w-0">
 
@@ -139,46 +139,49 @@ const HomePage = () => {
               </div>
             )}
 
-            {/* TRENDING NOW - Horizontal Scroll */}
+            {/* TRENDING NOW - Horizontal Scroll - Clean Cards */}
             {!loading && !error && trendingArticles.length > 0 && (
-              <section className="mb-8 animate-fade-in-up">
-                <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-200/60">
-                  <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5">
+              <section className="mb-6 sm:mb-8 animate-fade-in-up">
+                <div className="flex items-center justify-between pb-2 sm:pb-3 mb-3 sm:mb-4 border-b border-gray-200/60">
+                  <h2 className="text-lg sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
                     </span>
                     Trending Now
                   </h2>
-                  <span className="text-xs text-gray-400 font-medium">Live Updates</span>
+                  <span className="text-[10px] sm:text-xs text-gray-400 font-medium">Live Updates</span>
                 </div>
-                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 sm:pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
                   {trendingArticles.map((story, idx) => (
                     <Link
                       key={idx}
                       to={getArticleLink(story)}
-                      className="flex-shrink-0 w-72 flex gap-4 p-3 rounded-xl bg-white border border-transparent hover:border-gray-100 hover:shadow-lg transition-all duration-300 group"
+                      className="flex-shrink-0 w-40 sm:w-48 md:w-56 group touch-manipulation"
                     >
-                      <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
+                      <div className="relative rounded-xl overflow-hidden bg-gray-100 aspect-[3/4] shadow-sm hover:shadow-xl transition-all duration-300">
                         <img
                           src={getImage(story)}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          alt=""
+                          alt={story.title}
                         />
-                        <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-sm text-white text-[10px] px-1.5 rounded">
-                          #{idx + 1}
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                        {/* Rank badge */}
+                        <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-gray-900 text-[10px] sm:text-xs font-bold w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center shadow">
+                          {idx + 1}
                         </div>
-                      </div>
-                      <div className="flex flex-col justify-between py-1">
-                        <div>
-                          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">
+
+                        {/* Title overlay */}
+                        <div className="absolute bottom-0 left-0 right-0 p-2.5 sm:p-3">
+                          <span className="text-[9px] sm:text-[10px] font-bold text-blue-300 uppercase tracking-wide">
                             {story.section}
                           </span>
-                          <h4 className="font-semibold text-gray-800 leading-snug line-clamp-3 mt-1 group-hover:text-blue-700 transition-colors">
+                          <h4 className="font-bold text-white text-xs sm:text-sm leading-snug line-clamp-2 mt-0.5 group-hover:text-blue-200 transition-colors">
                             {story.title}
                           </h4>
                         </div>
-                        <span className="text-xs text-gray-400 mt-2">{story.published_date ? new Date(story.published_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}</span>
                       </div>
                     </Link>
                   ))}
@@ -186,94 +189,71 @@ const HomePage = () => {
               </section>
             )}
 
-            {/* 2. HERO SECTION - FULL WIDTH */}
+            {/* 2. HERO SECTION - FULL WIDTH - Clean Design */}
             {!loading && !error && heroArticle && (
-              <section className="mb-12 animate-fade-in-up">
-                <div className="group relative">
-                  <Link to={getArticleLink(heroArticle)} className="block h-full relative overflow-hidden rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500">
+              <section className="mb-8 sm:mb-12 animate-fade-in-up">
+                <Link to={getArticleLink(heroArticle)} className="group block relative overflow-hidden rounded-xl sm:rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 touch-manipulation">
+                  {/* Image Container */}
+                  <div className="aspect-[4/3] sm:aspect-[16/9] lg:aspect-[21/9] w-full overflow-hidden bg-gray-200">
+                    <img
+                      src={getImage(heroArticle)}
+                      alt={heroArticle.title}
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                    />
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                  </div>
 
-                    {/* Image Container */}
-                    <div className="aspect-w-16 aspect-h-10 lg:h-[500px] w-full overflow-hidden bg-gray-200">
-                      <img
-                        src={getImage(heroArticle)}
-                        alt={heroArticle.title}
-                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                      />
-                      {/* The "Readability" Gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                    </div>
+                  {/* Text Overlay - Simplified */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 lg:p-10">
+                    {/* Section badge */}
+                    <span className="inline-block bg-blue-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase tracking-wider mb-2 sm:mb-3">
+                      {heroArticle.section || 'Top Story'}
+                    </span>
 
-                    {/* Text Overlay */}
-                    <div className="absolute bottom-0 left-0 p-6 md:p-10 w-full z-10">
-
-                      {/* Tags Row */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="bg-blue-600 text-white text-[10px] md:text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
-                          {heroArticle.section || 'Top Story'}
-                        </span>
-                        {/* AI BADGE */}
-                        <span className="backdrop-blur-md bg-white/20 border border-white/30 text-white text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-                          <FontAwesomeIcon icon={faRobot} className="text-indigo-300" />
-                          <span>AI Analysis Ready</span>
-                        </span>
-                      </div>
-
-                      <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white leading-tight mb-4 font-serif text-shadow-sm">
-                        {heroArticle.title}
-                      </h1>
-
-                      <p className="hidden md:block text-gray-200 text-lg line-clamp-2 max-w-3xl mb-6 leading-relaxed">
-                        {heroArticle.abstract || heroArticle.summary}
-                      </p>
-
-                      <div className="flex items-center text-gray-300 text-sm font-medium">
-                        <span className="uppercase tracking-widest text-xs">{heroArticle.byline || 'Nukkad Team'}</span>
-                        <span className="mx-2">•</span>
-                        <span className="text-blue-300 group-hover:text-blue-200 transition-colors flex items-center gap-1">
-                          Read Full Story <FontAwesomeIcon icon={faChevronRight} className="text-[10px]" />
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-white leading-tight font-serif group-hover:text-blue-200 transition-colors">
+                      {heroArticle.title}
+                    </h1>
+                  </div>
+                </Link>
               </section>
             )}
 
 
 
-            {/* 4. MAIN FEED (MASONRY STYLE) */}
+            {/* 4. MAIN FEED - Clean Grid */}
             {!loading && !error && (
               <section>
-                <div className="flex items-end justify-between mb-6 border-b border-gray-100 pb-4">
+                <div className="flex items-end justify-between mb-4 sm:mb-6 border-b border-gray-100 pb-3 sm:pb-4">
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Latest Feed</h2>
-                    <p className="text-gray-500 mt-1">Curated stories for you based on your interests</p>
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Latest Feed</h2>
+                    <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1 hidden sm:block">Curated stories for you</p>
                   </div>
                 </div>
 
-                {/* Passing the sliced feed data to your existing Grid component */}
+                {/* News Grid */}
                 <NewsGrid
                   articles={visibleArticles.length > 0 ? visibleArticles : feedArticles}
                   loading={loading}
                   error={error}
                 />
 
-                {/* Load More Trigger */}
+                {/* Load More Button - Mobile Optimized */}
                 {hasMore && (
-                  <div className="mt-16 flex justify-center">
+                  <div className="mt-8 sm:mt-12 md:mt-16 flex justify-center">
                     <button
                       onClick={loadMore}
                       disabled={loadMoreLoading}
-                      className="group relative px-8 py-3.5 bg-white border border-gray-200 text-gray-600 font-medium rounded-full hover:border-blue-500 hover:text-blue-600 transition-all shadow-sm hover:shadow-lg hover:-translate-y-0.5"
+                      className="group relative px-6 sm:px-8 py-3 sm:py-3.5 bg-white border border-gray-200 text-gray-600 font-medium rounded-full hover:border-blue-500 hover:text-blue-600 active:bg-gray-50 transition-all shadow-sm hover:shadow-lg sm:hover:-translate-y-0.5 text-sm sm:text-base touch-manipulation"
                     >
                       <span className="flex items-center gap-2">
                         {loadMoreLoading ? (
                           <>
-                            <FontAwesomeIcon icon={faSpinner} spin /> Loading Content
+                            <FontAwesomeIcon icon={faSpinner} spin /> Loading...
                           </>
                         ) : (
                           <>
-                            Load More Stories <FontAwesomeIcon icon={faArrowDown} className="group-hover:translate-y-1 transition-transform" />
+                            Load More <FontAwesomeIcon icon={faArrowDown} className="group-hover:translate-y-1 transition-transform" />
                           </>
                         )}
                       </span>
@@ -284,8 +264,10 @@ const HomePage = () => {
             )}
           </div>
 
-          {/* Reels Sidebar - Fixed to right */}
-          <ReelsSidebar />
+          {/* Reels Sidebar - Hidden on mobile, visible on desktop */}
+          <div className="hidden lg:block">
+            <ReelsSidebar />
+          </div>
         </div>
       </div>
 
