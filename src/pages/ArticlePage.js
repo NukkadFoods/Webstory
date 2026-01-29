@@ -42,10 +42,9 @@ const ArticlePage = () => {
   const commentaryContainerRef = useRef(null);
   const commentaryScrollRef = useRef(null); // Scrollable container for commentary
 
-  // Auto-scroll to highlighted word when audio is playing - DESKTOP ONLY
+  // Auto-scroll to highlighted word when audio is playing - ALL SCREENS
   const scrollToHighlightedWord = useCallback(() => {
-    // Disable auto-scroll on mobile
-    if (isMobile || !autoScrollEnabled || !audioProgress.isPlaying) return;
+    if (!autoScrollEnabled || !audioProgress.isPlaying) return;
 
     const scrollContainer = commentaryScrollRef.current;
     if (!scrollContainer) return;
@@ -73,21 +72,19 @@ const ArticlePage = () => {
       top: Math.max(0, targetScroll),
       behavior: 'auto'
     });
-  }, [isMobile, autoScrollEnabled, audioProgress.isPlaying]);
+  }, [autoScrollEnabled, audioProgress.isPlaying]);
 
   // Trigger auto-scroll when audio progress updates - more frequent for smoother tracking
   useEffect(() => {
-    if (isMobile) return; // No auto-scroll on mobile
     if (audioProgress.isPlaying && autoScrollEnabled && audioProgress.contentProgress > 0) {
       // Small delay to let DOM update with new highlighted word
       const timer = setTimeout(scrollToHighlightedWord, 30);
       return () => clearTimeout(timer);
     }
-  }, [audioProgress.contentProgress, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord, isMobile]);
+  }, [audioProgress.contentProgress, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
 
   // Interval-based scroll as backup (every 200ms while playing for faster tracking)
   useEffect(() => {
-    if (isMobile) return; // No auto-scroll on mobile
     if (!audioProgress.isPlaying || !autoScrollEnabled) return;
 
     const scrollInterval = setInterval(() => {
@@ -95,11 +92,10 @@ const ArticlePage = () => {
     }, 200);
 
     return () => clearInterval(scrollInterval);
-  }, [audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord, isMobile]);
+  }, [audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
 
   // Also scroll when section changes
   useEffect(() => {
-    if (isMobile) return; // No auto-scroll on mobile
     if (audioProgress.isPlaying && autoScrollEnabled && audioSection >= 0) {
       // Give DOM time to update, then scroll
       const timer = setTimeout(() => {
@@ -107,7 +103,7 @@ const ArticlePage = () => {
       }, 50);
       return () => clearTimeout(timer);
     }
-  }, [audioSection, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord, isMobile]);
+  }, [audioSection, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
 
   // Disable auto-scroll temporarily if user manually scrolls the commentary container
   useEffect(() => {
@@ -406,10 +402,10 @@ const ArticlePage = () => {
       {/* Progress Bar */}
       <div className="fixed top-0 left-0 h-1 bg-blue-600 z-50" style={{ width: `${scrollProgress * 100}%` }} />
 
-      {/* Compact Floating Indicator - Desktop only (no auto-scroll on mobile) */}
-      {audioProgress.isPlaying && !isMobile && (
-        <div className="fixed bottom-4 right-4 z-50 animate-fadeIn hidden sm:block">
-          <div className="bg-gray-900/90 backdrop-blur text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-3 text-sm">
+      {/* Compact Floating Indicator - Shows current section */}
+      {audioProgress.isPlaying && (
+        <div className="fixed bottom-16 sm:bottom-4 right-2 sm:right-4 z-50 animate-fadeIn">
+          <div className="bg-gray-900/90 backdrop-blur text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-lg flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
             <div className="flex items-center gap-0.5">
               <span className="w-0.5 h-2 bg-blue-400 rounded animate-pulse"></span>
               <span className="w-0.5 h-3 bg-blue-400 rounded animate-pulse delay-75"></span>
@@ -421,10 +417,11 @@ const ArticlePage = () => {
                audioSection === 2 ? '🔮 Outlook' :
                '🎙️ Intro'}
             </span>
-            {!autoScrollEnabled && (
+            {/* Resume button - desktop only */}
+            {!autoScrollEnabled && !isMobile && (
               <button
                 onClick={() => setAutoScrollEnabled(true)}
-                className="text-xs text-blue-400 underline"
+                className="text-xs text-blue-400 underline hidden sm:inline"
               >
                 Resume
               </button>
@@ -451,8 +448,8 @@ const ArticlePage = () => {
 
           {/* LEFT SIDE (60%): Image + Audio Player - Sticky on ALL screens */}
           <div className="sticky top-0 z-10 self-start flex flex-col bg-white pb-2">
-            {/* Large Image Container - Compact on mobile to leave more reading space */}
-            <div className="rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-900 mb-2 flex-shrink-0 w-full h-32 sm:h-48 md:h-56 lg:h-72 xl:h-80 flex items-center justify-center">
+            {/* Large Image Container */}
+            <div className="rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-900 mb-2 flex-shrink-0 w-full h-44 sm:h-56 md:h-64 lg:h-80 xl:h-96 flex items-center justify-center">
               <img
                 src={article.imageUrl || article.multimedia?.[0]?.url}
                 alt={article.title}
