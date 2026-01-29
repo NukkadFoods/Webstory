@@ -27,15 +27,25 @@ const ArticlePage = () => {
   const [audioProgress, setAudioProgress] = useState({ sectionIndex: -1, sectionProgress: 0, isPlaying: false });
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [showReels, setShowReels] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Refs for auto-scroll functionality
   const highlightedWordRef = useRef(null);
   const commentaryContainerRef = useRef(null);
   const commentaryScrollRef = useRef(null); // Scrollable container for commentary
 
-  // Auto-scroll to highlighted word when audio is playing - ONLY within commentary container
+  // Auto-scroll to highlighted word when audio is playing - DESKTOP ONLY
   const scrollToHighlightedWord = useCallback(() => {
-    if (!autoScrollEnabled || !audioProgress.isPlaying) return;
+    // Disable auto-scroll on mobile
+    if (isMobile || !autoScrollEnabled || !audioProgress.isPlaying) return;
 
     const scrollContainer = commentaryScrollRef.current;
     if (!scrollContainer) return;
@@ -55,46 +65,49 @@ const ArticlePage = () => {
     // Get the element's position relative to the scroll container
     const relativeTop = highlightRect.top - containerRect.top + scrollContainer.scrollTop;
 
-    // Position highlighted word at 20% from top (not center) for better reading visibility
-    // This keeps more content visible below the highlighted word
-    const targetScroll = relativeTop - (containerRect.height * 0.2);
+    // Center the highlighted word in the container (50% from top)
+    const targetScroll = relativeTop - (containerRect.height * 0.5) + (highlightRect.height / 2);
 
+    // Use 'auto' for instant scrolling to keep up with the audio
     scrollContainer.scrollTo({
       top: Math.max(0, targetScroll),
-      behavior: 'smooth'
+      behavior: 'auto'
     });
-  }, [autoScrollEnabled, audioProgress.isPlaying]);
+  }, [isMobile, autoScrollEnabled, audioProgress.isPlaying]);
 
-  // Trigger auto-scroll when audio progress updates
+  // Trigger auto-scroll when audio progress updates - more frequent for smoother tracking
   useEffect(() => {
+    if (isMobile) return; // No auto-scroll on mobile
     if (audioProgress.isPlaying && autoScrollEnabled && audioProgress.contentProgress > 0) {
       // Small delay to let DOM update with new highlighted word
-      const timer = setTimeout(scrollToHighlightedWord, 50);
+      const timer = setTimeout(scrollToHighlightedWord, 30);
       return () => clearTimeout(timer);
     }
-  }, [audioProgress.contentProgress, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
+  }, [audioProgress.contentProgress, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord, isMobile]);
 
-  // Interval-based scroll as backup (every 500ms while playing)
+  // Interval-based scroll as backup (every 200ms while playing for faster tracking)
   useEffect(() => {
+    if (isMobile) return; // No auto-scroll on mobile
     if (!audioProgress.isPlaying || !autoScrollEnabled) return;
 
     const scrollInterval = setInterval(() => {
       scrollToHighlightedWord();
-    }, 500);
+    }, 200);
 
     return () => clearInterval(scrollInterval);
-  }, [audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
+  }, [audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord, isMobile]);
 
   // Also scroll when section changes
   useEffect(() => {
+    if (isMobile) return; // No auto-scroll on mobile
     if (audioProgress.isPlaying && autoScrollEnabled && audioSection >= 0) {
       // Give DOM time to update, then scroll
       const timer = setTimeout(() => {
         scrollToHighlightedWord();
-      }, 100);
+      }, 50);
       return () => clearTimeout(timer);
     }
-  }, [audioSection, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
+  }, [audioSection, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord, isMobile]);
 
   // Disable auto-scroll temporarily if user manually scrolls the commentary container
   useEffect(() => {
@@ -393,10 +406,10 @@ const ArticlePage = () => {
       {/* Progress Bar */}
       <div className="fixed top-0 left-0 h-1 bg-blue-600 z-50" style={{ width: `${scrollProgress * 100}%` }} />
 
-      {/* Compact Floating Indicator - only shows section info - Mobile optimized */}
-      {audioProgress.isPlaying && (
-        <div className="fixed bottom-16 sm:bottom-4 right-2 sm:right-4 z-50 animate-fadeIn">
-          <div className="bg-gray-900/90 backdrop-blur text-white px-3 sm:px-4 py-2 rounded-full shadow-lg flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+      {/* Compact Floating Indicator - Desktop only (no auto-scroll on mobile) */}
+      {audioProgress.isPlaying && !isMobile && (
+        <div className="fixed bottom-4 right-4 z-50 animate-fadeIn hidden sm:block">
+          <div className="bg-gray-900/90 backdrop-blur text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-3 text-sm">
             <div className="flex items-center gap-0.5">
               <span className="w-0.5 h-2 bg-blue-400 rounded animate-pulse"></span>
               <span className="w-0.5 h-3 bg-blue-400 rounded animate-pulse delay-75"></span>
@@ -457,12 +470,12 @@ const ArticlePage = () => {
                   onProgressUpdate={(progress) => setAudioProgress(progress)}
                 />
 
-                {/* Auto-scroll toggle - only visible when playing */}
-                {audioProgress.isPlaying && (
-                  <div className="flex justify-center mt-2">
+                {/* Auto-scroll toggle - only visible on desktop when playing */}
+                {audioProgress.isPlaying && !isMobile && (
+                  <div className="hidden sm:flex justify-center mt-2">
                     <button
                       onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 sm:py-1 rounded-full text-xs font-medium transition-all touch-manipulation ${
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
                         autoScrollEnabled
                           ? 'bg-green-600 text-white'
                           : 'bg-gray-700 text-gray-300'

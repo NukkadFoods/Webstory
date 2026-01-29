@@ -525,65 +525,65 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
 
     return (
         <div className="w-full">
-            {/* Main Player Card - Compact & Mobile Optimized */}
-            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-lg sm:rounded-xl p-2.5 sm:p-3 shadow-xl border border-gray-700">
+            {/* Main Player Card - Very Compact on Mobile */}
+            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-xl border border-gray-700">
 
-                {/* Reporter Info Row - Compact & Mobile Optimized */}
-                <div className="flex items-center gap-2 sm:gap-3 mb-2.5 sm:mb-3">
-                    {/* Avatar - Responsive size */}
+                {/* Reporter Info Row - Very Compact on Mobile */}
+                <div className="flex items-center gap-1.5 sm:gap-3 mb-1.5 sm:mb-3">
+                    {/* Avatar - Smaller on mobile */}
                     <div className="relative flex-shrink-0">
                         <img
                             src="/images/rachel-anderson.jpeg"
                             alt="Rachel Anderson"
-                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shadow-lg border-2 border-blue-500"
+                            className="w-7 h-7 sm:w-10 sm:h-10 rounded-full object-cover shadow-lg border-2 border-blue-500"
                             onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
                             }}
                         />
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-bold text-xs sm:text-sm shadow-lg hidden">
+                        <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center text-white font-bold text-[10px] sm:text-sm shadow-lg hidden">
                             RA
                         </div>
                         {isPlaying && (
-                            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse"></span>
+                            <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full border border-gray-900 animate-pulse"></span>
                         )}
                     </div>
 
-                    {/* Name & Title - Compact & Mobile Optimized */}
+                    {/* Name & Title - Compact on Mobile */}
                     <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-bold text-xs sm:text-sm leading-tight">
+                        <h3 className="text-white font-bold text-[10px] sm:text-sm leading-tight">
                             Rachel Anderson
                         </h3>
-                        <p className="text-blue-400 text-[9px] sm:text-[10px] font-medium uppercase tracking-wider truncate">
+                        <p className="text-blue-400 text-[8px] sm:text-[10px] font-medium uppercase tracking-wider truncate">
                             Senior Forexyy Reporter
                         </p>
                     </div>
 
                     {/* Live Badge */}
                     {isPlaying && (
-                        <div className="flex items-center gap-1 sm:gap-1.5 bg-red-500/20 px-1.5 sm:px-2 py-0.5 rounded-full flex-shrink-0">
-                            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
-                            <span className="text-red-400 text-[9px] sm:text-[10px] font-bold uppercase">Live</span>
+                        <div className="flex items-center gap-1 bg-red-500/20 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-red-500 rounded-full animate-pulse"></span>
+                            <span className="text-red-400 text-[8px] sm:text-[10px] font-bold uppercase">Live</span>
                         </div>
                     )}
                 </div>
 
-                {/* Clickable Section Buttons - Compact & Mobile Optimized */}
+                {/* Clickable Section Buttons - Hidden on mobile, compact on desktop */}
                 {sections.length > 1 && (
-                    <div className="mb-2 flex gap-1 sm:gap-1.5">
+                    <div className="hidden sm:flex mb-1.5 gap-1">
                         {sections.map((section, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => jumpToSection(idx)}
                                 disabled={!audioUrl}
-                                className={`flex-1 text-center py-1.5 sm:py-1.5 px-1 sm:px-1.5 rounded-md text-[9px] sm:text-[10px] font-medium transition-all cursor-pointer touch-manipulation
+                                className={`flex-1 text-center py-1 px-1 rounded text-[9px] font-medium transition-all cursor-pointer
                                     ${idx === currentSection
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                                        ? 'bg-blue-600 text-white'
                                         : idx < currentSection
-                                            ? 'bg-blue-900/50 text-blue-300 hover:bg-blue-800/50 active:bg-blue-800/70'
-                                            : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50 active:bg-gray-600/70'
+                                            ? 'bg-blue-900/50 text-blue-300 hover:bg-blue-800/50'
+                                            : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50'
                                     }
-                                    ${!audioUrl ? 'opacity-50 cursor-not-allowed' : 'sm:hover:scale-105'}
+                                    ${!audioUrl ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}
                                 `}
                             >
                                 {section.title}
@@ -592,45 +592,45 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                     </div>
                 )}
 
-                {/* Controls Row - Compact & Mobile Optimized */}
+                {/* Controls Row - Compact on Mobile */}
                 <div className="flex items-center gap-2 sm:gap-3">
-                    {/* Play/Pause Button - Larger touch target on mobile */}
+                    {/* Play/Pause Button - Compact on mobile */}
                     <button
                         onClick={handlePlay}
                         disabled={isLoading || (!isPreloaded && !isPlaying)}
-                        className={`flex items-center justify-center w-12 h-12 sm:w-11 sm:h-11 rounded-full transition-all flex-shrink-0 touch-manipulation ${isLoading || (!isPreloaded && !isPlaying && !error)
+                        className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all flex-shrink-0 touch-manipulation ${isLoading || (!isPreloaded && !isPlaying && !error)
                                 ? 'bg-gray-600 cursor-not-allowed opacity-70'
                                 : isPreloaded && !isPlaying
-                                    ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 active:from-green-700 active:to-green-600 text-white shadow-lg shadow-green-500/30 animate-pulse'
-                                    : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 active:from-blue-700 active:to-blue-600 text-white shadow-lg shadow-blue-500/30'
+                                    ? 'bg-gradient-to-r from-green-600 to-green-500 active:from-green-700 active:to-green-600 text-white shadow-lg shadow-green-500/30 animate-pulse'
+                                    : 'bg-gradient-to-r from-blue-600 to-blue-500 active:from-blue-700 active:to-blue-600 text-white shadow-lg shadow-blue-500/30'
                             }`}
                     >
                         {isLoading || (!isPreloaded && !isPlaying && !error) ? (
-                            <Loader size={20} className="animate-spin" />
+                            <Loader size={18} className="animate-spin" />
                         ) : isPlaying ? (
-                            <Pause size={20} fill="currentColor" />
+                            <Pause size={18} fill="currentColor" />
                         ) : (
-                            <Play size={20} fill="currentColor" className="ml-0.5" />
+                            <Play size={18} fill="currentColor" className="ml-0.5" />
                         )}
                     </button>
 
-                    {/* Seekbar & Time - Mobile Optimized */}
+                    {/* Seekbar & Time */}
                     <div className="flex-1 min-w-0">
-                        {/* Seekbar with Section Markers - Taller touch target on mobile */}
-                        <div className="relative h-3 sm:h-2 bg-gray-700 rounded-full overflow-visible">
+                        {/* Seekbar - Compact on mobile */}
+                        <div className="relative h-2 sm:h-2 bg-gray-700 rounded-full overflow-visible">
                             {/* Progress Fill */}
                             <div
                                 className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all"
                                 style={{ width: `${progress}%` }}
                             />
 
-                            {/* Section Markers (Yellow) - Very small on mobile */}
+                            {/* Section Markers (Yellow) - Hidden on mobile, visible on desktop */}
                             {sectionTimestamps.map((ts, idx) => (
                                 idx > 0 && (
                                     <button
                                         key={idx}
                                         onClick={() => jumpToSection(idx)}
-                                        className="absolute top-1/2 -translate-y-1/2 w-0.5 h-0.5 sm:w-1.5 sm:h-1.5 bg-yellow-400 rounded-full border-0 sm:border border-gray-900 sm:hover:scale-125 active:scale-110 transition-transform z-10 cursor-pointer touch-manipulation"
+                                        className="absolute top-1/2 -translate-y-1/2 hidden sm:block w-1.5 h-1.5 bg-yellow-400 rounded-full border border-gray-900 hover:scale-125 transition-transform z-10 cursor-pointer"
                                         style={{ left: `${(ts.start / duration) * 100}%` }}
                                         title={`Jump to ${sections[idx]?.title}`}
                                         disabled={!audioUrl}
