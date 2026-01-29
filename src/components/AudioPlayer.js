@@ -624,13 +624,13 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                                 style={{ width: `${progress}%` }}
                             />
 
-                            {/* Section Markers (Yellow) - Tiny on mobile */}
+                            {/* Section Markers (Yellow) - Very small on mobile */}
                             {sectionTimestamps.map((ts, idx) => (
                                 idx > 0 && (
                                     <button
                                         key={idx}
                                         onClick={() => jumpToSection(idx)}
-                                        className="absolute top-1/2 -translate-y-1/2 w-1 h-1 sm:w-1.5 sm:h-1.5 bg-yellow-400 rounded-full border border-gray-900 sm:hover:scale-125 active:scale-110 transition-transform z-10 cursor-pointer touch-manipulation"
+                                        className="absolute top-1/2 -translate-y-1/2 w-0.5 h-0.5 sm:w-1.5 sm:h-1.5 bg-yellow-400 rounded-full border-0 sm:border border-gray-900 sm:hover:scale-125 active:scale-110 transition-transform z-10 cursor-pointer touch-manipulation"
                                         style={{ left: `${(ts.start / duration) * 100}%` }}
                                         title={`Jump to ${sections[idx]?.title}`}
                                         disabled={!audioUrl}
