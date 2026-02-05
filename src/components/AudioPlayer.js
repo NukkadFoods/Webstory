@@ -4,10 +4,6 @@ import { Play, Pause, Loader, Volume2, VolumeX } from 'lucide-react';
 // Use direct backend URL for TTS
 const API_BASE_URL = 'https://webstorybackend.onrender.com';
 
-// Check if running on localhost (audio works) or network IP (CORS blocks it)
-const isLocalhost = typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
 // Parse commentary into sections for synced highlighting
 const parseCommentaryIntoSections = (text) => {
     if (!text) return [];
@@ -245,12 +241,6 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
     useEffect(() => {
         if (!commentary || preloadStartedRef.current) return;
 
-        // Skip on non-localhost (CORS will block it)
-        if (!isLocalhost) {
-            console.log('[AudioPlayer] Skipping - not on localhost (CORS restriction)');
-            return;
-        }
-
         preloadStartedRef.current = true;
         console.log('[AudioPlayer] Ready for streaming playback');
 
@@ -421,12 +411,6 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
     const handlePlay = async () => {
         if (!commentary) {
             setError('No commentary available');
-            return;
-        }
-
-        // On non-localhost, audio won't work due to CORS
-        if (!isLocalhost) {
-            setError('Audio available in production only');
             return;
         }
 
@@ -782,13 +766,10 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                 {/* Status Message - Compact inline & Mobile Optimized */}
                 {(error || isLoading) && (
                     <div className="mt-1.5 sm:mt-2 text-center">
-                        {!isLocalhost && !error && (
-                            <span className="text-gray-400 text-[9px] sm:text-[10px]">Audio available when published</span>
-                        )}
                         {error && (
                             <span className="text-orange-400 text-[9px] sm:text-[10px]">{error}</span>
                         )}
-                        {isLoading && isLocalhost && (
+                        {isLoading && !error && (
                             <span className="text-blue-400 text-[9px] sm:text-[10px]">Generating audio...</span>
                         )}
                     </div>
