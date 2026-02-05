@@ -86,13 +86,13 @@ const NewsCard = ({ article, id, title, abstract, byline, published_date, image,
       to={`/article/${articleIdentifier}`}
       className="group block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 h-full touch-manipulation news-card"
     >
-      {/* Image Container - Full card height */}
-      <div className="relative h-56 sm:h-64 md:h-72 lg:h-64 xl:h-72 overflow-hidden bg-gray-100">
+      {/* Image Container - Taller on mobile like hero */}
+      <div className="relative aspect-[4/5] sm:aspect-[4/3] md:aspect-[16/10] overflow-hidden bg-gray-200">
         {!imageError && imageOptions.length > 0 ? (
           <img
             src={imageOptions[currentImageIndex]?.url}
             alt={imageOptions[currentImageIndex]?.alt || articleData.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
             onError={handleImageError}
             referrerPolicy="no-referrer"
@@ -103,19 +103,19 @@ const NewsCard = ({ article, id, title, abstract, byline, published_date, image,
           </div>
         )}
 
-        {/* Gradient overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+        {/* Gradient overlay for text readability - stronger like hero */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
         {/* Section badge */}
         {articleData.section && (
-          <span className="absolute top-3 left-3 bg-blue-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">
+          <span className="absolute top-3 left-3 bg-blue-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase tracking-wider mb-2">
             {articleData.section}
           </span>
         )}
 
-        {/* Title overlay on image */}
+        {/* Title overlay on image - more prominent like hero */}
         <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
-          <h2 className="text-white font-bold text-base sm:text-lg md:text-xl leading-snug line-clamp-3 group-hover:text-blue-200 transition-colors">
+          <h2 className="text-white font-bold text-lg sm:text-xl md:text-xl leading-tight line-clamp-3 group-hover:text-blue-200 transition-colors font-serif">
             {articleData.title}
           </h2>
         </div>

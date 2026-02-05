@@ -1,6 +1,6 @@
-// filepath: c:\Users\hp\Documents\GitHub\Webstory\src\services\storyService.js
 // Use our backend API instead of hitting NYT directly
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+const isDevelopment = process.env.NODE_ENV === 'development';
+const API_BASE_URL = isDevelopment ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
 
 export const getTopStories = async (section = 'home') => {
   const cacheKey = `topStories_${section}`;

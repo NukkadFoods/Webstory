@@ -1,9 +1,10 @@
 // Simple API Configuration
-// Just use the environment variable directly
+// Use relative URLs in development (proxy handles it), absolute in production
 
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+const isDevelopment = process.env.NODE_ENV === 'development';
+const API_BASE_URL = isDevelopment ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
 
-console.log('🔧 API Configuration:', API_BASE_URL);
+console.log('🔧 API Configuration:', API_BASE_URL || '(using proxy)');
 
 // Simple API request function
 export const makeAPIRequest = async (endpoint, options = {}) => {

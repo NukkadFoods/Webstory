@@ -1,8 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Play, Pause, Loader, Volume2, VolumeX } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL ||
-    (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://webstorybackend.onrender.com');
+// Use direct backend URL for TTS
+const API_BASE_URL = 'https://webstorybackend.onrender.com';
+
+// Check if running on localhost (audio works) or network IP (CORS blocks it)
+const isLocalhost = typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
 // Parse commentary into sections for synced highlighting
 const parseCommentaryIntoSections = (text) => {
@@ -54,11 +58,20 @@ const formatTime = (seconds) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, autoplay = true }) => {
+const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, autoplay = false }) => {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isHovered, setIsHovered] = useState(false); // Track hover/touch for glass effect
     const playerIdRef = useRef(`audio-player-${Date.now()}`);
     const autoplayAttemptedRef = useRef(false);
+
+    // Use refs for callbacks to avoid dependency issues
+    const onSectionChangeRef = useRef(onSectionChange);
+    const onProgressUpdateRef = useRef(onProgressUpdate);
+    useEffect(() => {
+        onSectionChangeRef.current = onSectionChange;
+        onProgressUpdateRef.current = onProgressUpdate;
+    }, [onSectionChange, onProgressUpdate]);
 
     // Listen for global stop event (when another media starts playing)
     useEffect(() => {
@@ -68,6 +81,11 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
 
             if (audioRef.current && !audioRef.current.paused) {
                 audioRef.current.pause();
+                // Stop the interval directly via ref
+                if (timeUpdateIntervalRef.current) {
+                    clearInterval(timeUpdateIntervalRef.current);
+                    timeUpdateIntervalRef.current = null;
+                }
                 setIsPlaying(false);
             }
         };
@@ -83,8 +101,11 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
     const [isMuted, setIsMuted] = useState(false);
     const [currentSection, setCurrentSection] = useState(0);
     const [isPreloaded, setIsPreloaded] = useState(false);
+    const [hasFullAudio, setHasFullAudio] = useState(false); // Track if we have complete audio
+    const [isStreaming, setIsStreaming] = useState(false); // Track if we're in streaming mode
     const preloadStartedRef = useRef(false);
     const abortControllerRef = useRef(null);
+    const timeUpdateIntervalRef = useRef(null); // Ref-based interval for immediate time updates
 
     const sections = useMemo(() => parseCommentaryIntoSections(commentary), [commentary]);
 
@@ -202,6 +223,11 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
 
     // Reset state when commentary changes
     useEffect(() => {
+        // Clear interval directly via ref (function not yet defined at this point)
+        if (timeUpdateIntervalRef.current) {
+            clearInterval(timeUpdateIntervalRef.current);
+            timeUpdateIntervalRef.current = null;
+        }
         setError(null);
         setAudioUrl(null);
         setIsPlaying(false);
@@ -209,127 +235,34 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
         setDuration(0);
         setCurrentSection(0);
         setIsPreloaded(false);
+        setHasFullAudio(false);
+        setIsStreaming(false);
         preloadStartedRef.current = false;
         autoplayAttemptedRef.current = false;
     }, [commentary]);
 
-    // Preload audio as soon as component mounts (user lands on page)
+    // Set up audio - ready for streaming playback on demand
     useEffect(() => {
         if (!commentary || preloadStartedRef.current) return;
 
+        // Skip on non-localhost (CORS will block it)
+        if (!isLocalhost) {
+            console.log('[AudioPlayer] Skipping - not on localhost (CORS restriction)');
+            return;
+        }
+
         preloadStartedRef.current = true;
-        abortControllerRef.current = new AbortController();
+        console.log('[AudioPlayer] Ready for streaming playback');
 
-        const preloadAudio = async () => {
-            try {
-                console.log('[AudioPlayer] Starting audio preload on page load...');
+        // Don't set isPreloaded here - wait until we have actual audio
+        // This prevents the autoplay effect from triggering prematurely
+    }, [commentary]);
 
-                const response = await fetch(`${API_BASE_URL}/api/tts/speak`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: commentary, title }),
-                    signal: abortControllerRef.current.signal
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-
-                const blob = await response.blob();
-
-                if (blob.size < 1000) {
-                    console.warn('[AudioPlayer] Preload: blob too small');
-                    return;
-                }
-
-                const url = URL.createObjectURL(blob);
-                setAudioUrl(url);
-
-                // Set audio source and WAIT for it to be ready to play
-                if (audioRef.current) {
-                    audioRef.current.src = url;
-
-                    // Wait for audio to be buffered and ready to play instantly
-                    await new Promise((resolve, reject) => {
-                        const audio = audioRef.current;
-                        if (!audio) {
-                            reject(new Error('Audio element not available'));
-                            return;
-                        }
-
-                        const onCanPlayThrough = () => {
-                            audio.removeEventListener('canplaythrough', onCanPlayThrough);
-                            audio.removeEventListener('error', onError);
-                            console.log('[AudioPlayer] Audio buffered and ready!');
-                            resolve();
-                        };
-
-                        const onError = (e) => {
-                            audio.removeEventListener('canplaythrough', onCanPlayThrough);
-                            audio.removeEventListener('error', onError);
-                            reject(new Error('Audio load error'));
-                        };
-
-                        // Check if already ready (readyState 4 = HAVE_ENOUGH_DATA)
-                        if (audio.readyState >= 4) {
-                            console.log('[AudioPlayer] Audio already buffered');
-                            resolve();
-                            return;
-                        }
-
-                        audio.addEventListener('canplaythrough', onCanPlayThrough);
-                        audio.addEventListener('error', onError);
-
-                        // Force load
-                        audio.load();
-                    });
-                }
-
-                setIsPreloaded(true);
-                console.log('[AudioPlayer] Audio preloaded and ready to play instantly!');
-            } catch (err) {
-                if (err.name === 'AbortError') {
-                    console.log('[AudioPlayer] Preload aborted (user navigated away)');
-                } else {
-                    console.error('[AudioPlayer] Preload error:', err);
-                    // Don't show error - will retry on play click
-                }
-            }
-        };
-
-        preloadAudio();
-    }, [commentary, title]);
-
-    // Autoplay when audio is preloaded (helps new users discover the feature)
-    useEffect(() => {
-        if (!autoplay || !isPreloaded || autoplayAttemptedRef.current) return;
-        if (!audioRef.current || isPlaying) return;
-
-        autoplayAttemptedRef.current = true;
-
-        const attemptAutoplay = async () => {
-            try {
-                // Stop any other playing media first
-                window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
-
-                console.log('[AudioPlayer] Attempting autoplay...');
-                await audioRef.current.play();
-                setIsPlaying(true);
-                onSectionChange?.(0);
-                console.log('[AudioPlayer] Autoplay successful!');
-            } catch (err) {
-                // Autoplay was blocked by browser policy - this is normal
-                console.log('[AudioPlayer] Autoplay blocked by browser:', err.name);
-                // Don't show error - user can click play manually
-            }
-        };
-
-        // Small delay to ensure everything is ready
-        const timer = setTimeout(attemptAutoplay, 300);
-        return () => clearTimeout(timer);
-    }, [autoplay, isPreloaded, isPlaying, onSectionChange]);
+    // Autoplay disabled - user must click play to start
+    // This prevents race conditions where autoplay conflicts with manual play clicks
 
     // Update current section and progress based on audio progress
+    // Works during streaming using estimated duration if needed
     useEffect(() => {
         if (duration > 0 && sectionTimestamps.length > 0) {
             const newSection = sectionTimestamps.findIndex(
@@ -340,7 +273,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
 
             if (isInIntro) {
                 // Still reading title/intro - no highlighting
-                onProgressUpdate?.({
+                onProgressUpdateRef.current?.({
                     sectionIndex: -1,
                     sectionProgress: 0,
                     contentProgress: 0,
@@ -355,7 +288,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
             if (newSection !== -1) {
                 if (newSection !== currentSection) {
                     setCurrentSection(newSection);
-                    onSectionChange?.(newSection);
+                    onSectionChangeRef.current?.(newSection);
                 }
 
                 const ts = sectionTimestamps[newSection];
@@ -364,14 +297,13 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                 const isReadingHeader = currentTime < ts.contentStart;
 
                 // Calculate progress within content only (not header)
-                // contentStart is adjusted to include the header pause, so actual content reading starts there
                 const contentDuration = ts.end - ts.contentStart;
                 const contentProgress = contentDuration > 0 && !isReadingHeader
                     ? (currentTime - ts.contentStart) / contentDuration
                     : 0;
 
                 // Report progress to parent for word highlighting
-                onProgressUpdate?.({
+                onProgressUpdateRef.current?.({
                     sectionIndex: newSection,
                     sectionProgress: Math.min(Math.max(contentProgress, 0), 1),
                     contentProgress: Math.min(Math.max(contentProgress, 0), 1),
@@ -382,17 +314,82 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                 });
             }
         }
-    }, [currentTime, duration, sectionTimestamps, introDuration, currentSection, onSectionChange, onProgressUpdate, isPlaying]);
+    }, [currentTime, duration, sectionTimestamps, introDuration, currentSection, isPlaying]);
 
     const handleTimeUpdate = useCallback(() => {
         if (audioRef.current) {
-            setCurrentTime(audioRef.current.currentTime);
+            const time = audioRef.current.currentTime;
+            setCurrentTime(time);
         }
     }, []);
 
+    // Start time update interval immediately (ref-based, not dependent on state)
+    const startTimeUpdateInterval = useCallback(() => {
+        // Clear any existing interval
+        if (timeUpdateIntervalRef.current) {
+            clearInterval(timeUpdateIntervalRef.current);
+        }
+
+        // Start new interval immediately
+        timeUpdateIntervalRef.current = setInterval(() => {
+            if (audioRef.current) {
+                const time = audioRef.current.currentTime;
+                setCurrentTime(time);
+
+                // Also update duration if it changed (streaming)
+                const dur = audioRef.current.duration;
+                if (dur && isFinite(dur) && dur > 0) {
+                    setDuration(prev => {
+                        // Only update if significantly different
+                        return Math.abs(dur - prev) > 0.5 ? dur : prev;
+                    });
+                }
+            }
+        }, 50); // Update 20 times per second for very smooth progress
+    }, []);
+
+    const stopTimeUpdateInterval = useCallback(() => {
+        if (timeUpdateIntervalRef.current) {
+            clearInterval(timeUpdateIntervalRef.current);
+            timeUpdateIntervalRef.current = null;
+        }
+    }, []);
+
+    // Cleanup interval on unmount
+    useEffect(() => {
+        return () => {
+            stopTimeUpdateInterval();
+        };
+    }, [stopTimeUpdateInterval]);
+
+    // Also sync interval with isPlaying state as a backup
+    useEffect(() => {
+        if (isPlaying) {
+            startTimeUpdateInterval();
+        } else {
+            stopTimeUpdateInterval();
+        }
+    }, [isPlaying, startTimeUpdateInterval, stopTimeUpdateInterval]);
+
     const handleLoadedMetadata = useCallback(() => {
         if (audioRef.current) {
-            setDuration(audioRef.current.duration);
+            const dur = audioRef.current.duration;
+            // Only update if we get a valid finite duration (not from partial blob)
+            if (dur && isFinite(dur) && dur > 0) {
+                setDuration(dur);
+                console.log('[AudioPlayer] Got real duration from metadata:', dur);
+            }
+        }
+    }, []);
+
+    // Also listen for durationchange event for streaming audio
+    const handleDurationChange = useCallback(() => {
+        if (audioRef.current) {
+            const dur = audioRef.current.duration;
+            if (dur && isFinite(dur) && dur > 0) {
+                setDuration(dur);
+                console.log('[AudioPlayer] Duration changed:', dur);
+            }
         }
     }, []);
 
@@ -412,7 +409,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
         audioRef.current.currentTime = targetTime;
         setCurrentTime(targetTime);
         setCurrentSection(sectionIndex);
-        onSectionChange?.(sectionIndex);
+        onSectionChangeRef.current?.(sectionIndex);
 
         // Start playing if not already
         if (audioRef.current.paused && audioUrl) {
@@ -427,40 +424,52 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
             return;
         }
 
-        // If already playing, pause
-        if (audioRef.current && !audioRef.current.paused) {
+        // On non-localhost, audio won't work due to CORS
+        if (!isLocalhost) {
+            setError('Audio available in production only');
+            return;
+        }
+
+        // If already playing, pause (use isPlaying state for reliability during streaming)
+        if (isPlaying && audioRef.current) {
             audioRef.current.pause();
+            stopTimeUpdateInterval();
             setIsPlaying(false);
             return;
         }
 
-        // If audio is preloaded and ready, play instantly
-        if (audioUrl && audioRef.current && isPreloaded) {
+        // If audio URL already exists, just play it
+        if (audioUrl && audioRef.current) {
             try {
-                // Stop any other playing media first
                 window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
-
-                console.log('[AudioPlayer] Playing preloaded audio instantly!');
                 await audioRef.current.play();
+                // Start interval IMMEDIATELY on resume
+                startTimeUpdateInterval();
                 setIsPlaying(true);
-                onSectionChange?.(currentSection);
+                onSectionChangeRef.current?.(currentSection);
                 return;
             } catch (err) {
-                console.error('[AudioPlayer] Play error:', err);
-                // If autoplay was blocked, show error instead of re-fetching
                 if (err.name === 'NotAllowedError') {
-                    setError('Please interact with the page first to enable audio');
+                    setError('Tap again to play');
                     return;
                 }
-                // For other errors, continue to fallback fetch
             }
         }
 
-        // Fallback: fetch audio if preload failed or not ready yet
+        // Stream audio with early playback
         setIsLoading(true);
         setError(null);
+        setIsStreaming(true);
+
+        // Set estimated duration IMMEDIATELY so UI is ready
+        const wordCount = commentary.split(/\s+/).length;
+        const estimatedDuration = (wordCount / 120) * 60; // ~120 words/min TTS
+        setDuration(estimatedDuration);
+        console.log('[AudioPlayer] Set estimated duration:', estimatedDuration, 'seconds for', wordCount, 'words');
 
         try {
+            console.log('[AudioPlayer] Starting streaming fetch...');
+
             const response = await fetch(`${API_BASE_URL}/api/tts/speak`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -468,40 +477,120 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
             });
 
             if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error || `Server error: ${response.status}`);
+                throw new Error(`Server error: ${response.status}`);
             }
 
-            const blob = await response.blob();
-            console.log('[AudioPlayer] Audio blob received:', { size: blob.size, type: blob.type });
+            // Use streaming to start playback faster
+            const reader = response.body.getReader();
+            const chunks = [];
+            let firstChunkPlayed = false;
 
-            if (blob.size < 1000) {
-                console.warn('[AudioPlayer] Blob too small, possibly an error message?');
-                const text = await blob.text();
-                console.warn('[AudioPlayer] Blob content:', text);
-            }
+            const processStream = async () => {
+                while (true) {
+                    const { done, value } = await reader.read();
 
-            const url = URL.createObjectURL(blob);
+                    if (done) {
+                        console.log('[AudioPlayer] Stream complete, total chunks:', chunks.length);
+                        break;
+                    }
 
-            if (audioUrl) URL.revokeObjectURL(audioUrl);
-            setAudioUrl(url);
-            setIsPreloaded(true);
+                    chunks.push(value);
 
-            if (audioRef.current) {
-                // Stop any other playing media first
-                window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
+                    // Start playback after receiving ~20KB (enough for ~1-2 seconds of audio)
+                    const totalSize = chunks.reduce((acc, c) => acc + c.length, 0);
 
-                audioRef.current.src = url;
-                await audioRef.current.play();
-                setIsPlaying(true);
-                setCurrentSection(0);
-                onSectionChange?.(0);
-            }
+                    if (!firstChunkPlayed && totalSize > 20000) {
+                        console.log('[AudioPlayer] Starting early playback at', totalSize, 'bytes');
+                        firstChunkPlayed = true;
+
+                        // Create blob from chunks received so far
+                        const partialBlob = new Blob(chunks, { type: 'audio/mpeg' });
+                        const url = URL.createObjectURL(partialBlob);
+
+                        if (audioUrl) URL.revokeObjectURL(audioUrl);
+                        setAudioUrl(url);
+
+                        if (audioRef.current) {
+                            window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
+                            audioRef.current.src = url;
+
+                            try {
+                                await audioRef.current.play();
+                                // Start interval IMMEDIATELY (don't wait for state update)
+                                startTimeUpdateInterval();
+                                setIsPlaying(true);
+                                setIsLoading(false);
+                                setCurrentSection(0);
+                                setCurrentTime(0); // Reset to 0 for fresh start
+                                onSectionChangeRef.current?.(0);
+                            } catch (playErr) {
+                                console.error('[AudioPlayer] Early play failed:', playErr);
+                                setIsLoading(false);
+                            }
+                        }
+                    }
+                }
+
+                // After stream completes, update with full audio
+                const fullBlob = new Blob(chunks, { type: 'audio/mpeg' });
+                const fullUrl = URL.createObjectURL(fullBlob);
+                console.log('[AudioPlayer] Full audio ready:', fullBlob.size, 'bytes');
+                setIsStreaming(false);
+
+                // Only update if we started early playback
+                if (firstChunkPlayed && audioRef.current) {
+                    const savedTime = audioRef.current.currentTime;
+                    const wasPlaying = !audioRef.current.paused;
+
+                    if (audioUrl) URL.revokeObjectURL(audioUrl);
+                    setAudioUrl(fullUrl);
+                    audioRef.current.src = fullUrl;
+
+                    // Wait for the new source to be ready before seeking
+                    audioRef.current.onloadeddata = () => {
+                        if (audioRef.current) {
+                            audioRef.current.currentTime = savedTime;
+                            if (wasPlaying) {
+                                audioRef.current.play().catch(() => {});
+                            }
+                        }
+                    };
+                } else if (!firstChunkPlayed) {
+                    // If we never started early, start now with full audio
+                    if (audioUrl) URL.revokeObjectURL(audioUrl);
+                    setAudioUrl(fullUrl);
+
+                    if (audioRef.current) {
+                        window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
+                        audioRef.current.src = fullUrl;
+                        await audioRef.current.play();
+                        // Start interval IMMEDIATELY
+                        startTimeUpdateInterval();
+                        setIsPlaying(true);
+                        setCurrentSection(0);
+                        setCurrentTime(0);
+                        onSectionChangeRef.current?.(0);
+                    }
+                    setIsLoading(false);
+                }
+
+                setIsPreloaded(true);
+                setHasFullAudio(true); // Now safe to show progress/highlighting
+            };
+
+            processStream().catch(err => {
+                console.error('[AudioPlayer] Stream processing error:', err);
+                setError('Streaming failed');
+                setIsLoading(false);
+                setIsStreaming(false);
+            });
+
         } catch (err) {
             console.error('[AudioPlayer] Error:', err);
             setError(err.message || 'Playback failed');
-        } finally {
             setIsLoading(false);
+            setIsStreaming(false);
+            stopTimeUpdateInterval();
         }
     };
 
@@ -513,29 +602,43 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
     };
 
     const handleEnded = () => {
+        stopTimeUpdateInterval();
         setIsPlaying(false);
         setCurrentSection(0);
-        onSectionChange?.(-1);
-        onProgressUpdate?.({ sectionIndex: -1, sectionProgress: 0, isPlaying: false });
+        setCurrentTime(0);
+        onSectionChangeRef.current?.(-1);
+        onProgressUpdateRef.current?.({ sectionIndex: -1, sectionProgress: 0, isPlaying: false });
     };
 
     if (!commentary) return null;
 
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+    // Show glass effect when hovered or touched - MOBILE ONLY
+    const showGlassEffect = isHovered;
+
     return (
         <div className="w-full">
-            {/* Main Player Card - Very Compact on Mobile */}
-            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-xl border border-gray-700">
+            {/* Main Player Card
+                - MOBILE: 100% transparent by default, glass effect on touch
+                - DESKTOP: Always has solid background */}
+            <div
+                className={`rounded-xl p-2 sm:p-3 transition-all duration-300 ease-out
+                    sm:bg-gradient-to-br sm:from-gray-900 sm:via-gray-800 sm:to-gray-900 sm:shadow-xl sm:border sm:border-gray-700
+                    ${showGlassEffect ? 'bg-black/60 backdrop-blur-xl shadow-2xl border border-white/20' : 'max-sm:bg-transparent max-sm:border-0 max-sm:shadow-none'}`}
+                style={!showGlassEffect ? { } : {}}
+                onTouchStart={() => setIsHovered(true)}
+                onTouchEnd={() => setTimeout(() => setIsHovered(false), 3000)}
+            >
 
                 {/* Reporter Info Row - Very Compact on Mobile */}
                 <div className="flex items-center gap-1.5 sm:gap-3 mb-1.5 sm:mb-3">
                     {/* Avatar - Smaller on mobile */}
-                    <div className="relative flex-shrink-0">
+                    <div className={`relative flex-shrink-0 transition-all duration-300 ${!showGlassEffect ? 'max-sm:drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]' : ''}`}>
                         <img
                             src="/images/rachel-anderson.jpeg"
                             alt="Rachel Anderson"
-                            className="w-7 h-7 sm:w-10 sm:h-10 rounded-full object-cover shadow-lg border-2 border-blue-500"
+                            className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full object-cover transition-all duration-300 border-2 sm:border-blue-500 sm:shadow-lg ${showGlassEffect ? 'border-blue-500 shadow-lg' : 'max-sm:border-white/50 max-sm:shadow-xl'}`}
                             onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
@@ -551,10 +654,10 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
 
                     {/* Name & Title - Compact on Mobile */}
                     <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-bold text-[10px] sm:text-sm leading-tight">
+                        <h3 className={`font-bold text-[10px] sm:text-sm leading-tight transition-all duration-300 text-white ${!showGlassEffect ? 'max-sm:[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%),_0_1px_3px_rgb(0_0_0_/_100%)]' : ''}`}>
                             Rachel Anderson
                         </h3>
-                        <p className="text-blue-400 text-[8px] sm:text-[10px] font-medium uppercase tracking-wider truncate">
+                        <p className={`text-[8px] sm:text-[10px] font-medium uppercase tracking-wider truncate transition-all duration-300 text-blue-400 ${!showGlassEffect ? 'max-sm:text-blue-300 max-sm:[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%),_0_1px_3px_rgb(0_0_0_/_100%)]' : ''}`}>
                             Senior Forexyy Reporter
                         </p>
                     </div>
@@ -597,15 +700,18 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                     {/* Play/Pause Button - Compact on mobile */}
                     <button
                         onClick={handlePlay}
-                        disabled={isLoading || (!isPreloaded && !isPlaying)}
-                        className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all flex-shrink-0 touch-manipulation ${isLoading || (!isPreloaded && !isPlaying && !error)
+                        disabled={isLoading && !isPlaying}
+                        className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all duration-300 flex-shrink-0 touch-manipulation ${
+                            isLoading && !isPlaying
                                 ? 'bg-gray-600 cursor-not-allowed opacity-70'
-                                : isPreloaded && !isPlaying
-                                    ? 'bg-gradient-to-r from-green-600 to-green-500 active:from-green-700 active:to-green-600 text-white shadow-lg shadow-green-500/30 animate-pulse'
-                                    : 'bg-gradient-to-r from-blue-600 to-blue-500 active:from-blue-700 active:to-blue-600 text-white shadow-lg shadow-blue-500/30'
-                            }`}
+                                : isPlaying
+                                    ? 'bg-gradient-to-r from-blue-600 to-blue-500 active:from-blue-700 active:to-blue-600 text-white shadow-lg shadow-blue-500/30'
+                                    : isPreloaded
+                                        ? 'bg-gradient-to-r from-green-600 to-green-500 active:from-green-700 active:to-green-600 text-white shadow-lg shadow-green-500/30 animate-pulse'
+                                        : 'bg-gradient-to-r from-yellow-600 to-orange-500 active:from-yellow-700 active:to-orange-600 text-white sm:shadow-lg sm:shadow-orange-500/30 max-sm:shadow-[0_4px_15px_rgba(0,0,0,0.8)]'
+                        }`}
                     >
-                        {isLoading || (!isPreloaded && !isPlaying && !error) ? (
+                        {isLoading && !isPlaying ? (
                             <Loader size={18} className="animate-spin" />
                         ) : isPlaying ? (
                             <Pause size={18} fill="currentColor" />
@@ -616,24 +722,26 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
 
                     {/* Seekbar & Time */}
                     <div className="flex-1 min-w-0">
-                        {/* Seekbar - Compact on mobile */}
-                        <div className="relative h-2 sm:h-2 bg-gray-700 rounded-full overflow-visible">
+                        {/* Seekbar - Mobile: outline when transparent, Desktop: always filled */}
+                        <div className={`relative h-2 sm:h-2 rounded-full overflow-visible transition-all duration-300 sm:bg-gray-700 ${showGlassEffect ? 'bg-white/20' : 'max-sm:bg-transparent max-sm:border max-sm:border-white/50 max-sm:shadow-[0_2px_10px_rgba(0,0,0,0.9)]'}`}>
                             {/* Progress Fill */}
                             <div
-                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all"
-                                style={{ width: `${progress}%` }}
+                                className={`absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-100 ${isStreaming ? 'opacity-80' : ''} ${!showGlassEffect ? 'max-sm:shadow-[0_0_8px_rgba(59,130,246,0.8)]' : ''}`}
+                                style={{ width: `${Math.min(progress, 100)}%` }}
                             />
 
-                            {/* Section Markers (Yellow) - Hidden on mobile, visible on desktop */}
-                            {sectionTimestamps.map((ts, idx) => (
+                            {/* Section Markers (Yellow) - Small dots on all screens */}
+                            {duration > 0 && sectionTimestamps.map((ts, idx) => (
                                 idx > 0 && (
-                                    <button
+                                    <div
                                         key={idx}
-                                        onClick={() => jumpToSection(idx)}
-                                        className="absolute top-1/2 -translate-y-1/2 hidden sm:block w-1.5 h-1.5 bg-yellow-400 rounded-full border border-gray-900 hover:scale-125 transition-transform z-10 cursor-pointer"
-                                        style={{ left: `${(ts.start / duration) * 100}%` }}
+                                        onClick={() => audioUrl && jumpToSection(idx)}
+                                        className="absolute top-1/2 -translate-y-1/2 w-1 h-1 bg-yellow-400 rounded-full hover:scale-150 transition-transform z-10"
+                                        style={{
+                                            left: `${(ts.start / duration) * 100}%`,
+                                            cursor: audioUrl ? 'pointer' : 'default'
+                                        }}
                                         title={`Jump to ${sections[idx]?.title}`}
-                                        disabled={!audioUrl}
                                     />
                                 )
                             ))}
@@ -642,8 +750,9 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                             <input
                                 type="range"
                                 min="0"
-                                max={duration || 0}
-                                value={currentTime}
+                                max={duration || 100}
+                                step="0.1"
+                                value={currentTime || 0}
                                 onChange={handleSeek}
                                 className="absolute top-1/2 -translate-y-1/2 left-0 w-full h-8 sm:h-full opacity-0 cursor-pointer z-20 touch-manipulation"
                                 disabled={!audioUrl}
@@ -651,12 +760,12 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                         </div>
 
                         {/* Timestamps */}
-                        <div className="flex justify-between mt-0.5">
-                            <span className="text-gray-400 text-[9px] sm:text-[10px] font-mono">
+                        <div className="flex justify-between mt-1 px-0.5">
+                            <span className={`text-[10px] sm:text-xs font-mono tabular-nums transition-all duration-300 sm:text-gray-400 ${showGlassEffect ? 'text-white/80' : 'max-sm:text-white max-sm:[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%)]'}`}>
                                 {formatTime(currentTime)}
                             </span>
-                            <span className="text-gray-500 text-[9px] sm:text-[10px] font-mono">
-                                {formatTime(duration)}
+                            <span className={`text-[10px] sm:text-xs font-mono tabular-nums transition-all duration-300 ${isStreaming ? 'text-yellow-400 max-sm:[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%)]' : showGlassEffect ? 'text-white/50' : 'sm:text-gray-500 max-sm:text-white/80 max-sm:[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%)]'}`}>
+                                {isStreaming ? `~${formatTime(duration)}` : formatTime(duration)}
                             </span>
                         </div>
                     </div>
@@ -664,26 +773,23 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                     {/* Mute Button - Larger touch target on mobile */}
                     <button
                         onClick={toggleMute}
-                        className="p-2 sm:p-1.5 text-gray-400 hover:text-white active:text-blue-400 transition flex-shrink-0 touch-manipulation"
+                        className={`p-2 sm:p-1.5 hover:text-white active:text-blue-400 transition-all duration-300 flex-shrink-0 touch-manipulation sm:text-gray-400 ${showGlassEffect ? 'text-gray-400' : 'max-sm:text-white max-sm:drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]'}`}
                     >
                         {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                     </button>
                 </div>
 
                 {/* Status Message - Compact inline & Mobile Optimized */}
-                {(error || isLoading || (!isPlaying && !isPreloaded)) && (
+                {(error || isLoading) && (
                     <div className="mt-1.5 sm:mt-2 text-center">
+                        {!isLocalhost && !error && (
+                            <span className="text-gray-400 text-[9px] sm:text-[10px]">Audio available when published</span>
+                        )}
                         {error && (
-                            <span className="text-red-400 text-[9px] sm:text-[10px]">{error}</span>
+                            <span className="text-orange-400 text-[9px] sm:text-[10px]">{error}</span>
                         )}
-                        {isLoading && (
+                        {isLoading && isLocalhost && (
                             <span className="text-blue-400 text-[9px] sm:text-[10px]">Generating audio...</span>
-                        )}
-                        {!isLoading && !isPlaying && !isPreloaded && !error && (
-                            <span className="text-gray-400 text-[9px] sm:text-[10px] flex items-center justify-center gap-1">
-                                <Loader size={10} className="animate-spin" />
-                                Preparing audio...
-                            </span>
                         )}
                     </div>
                 )}
@@ -693,7 +799,10 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate, aut
                     ref={audioRef}
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
+                    onDurationChange={handleDurationChange}
                     onEnded={handleEnded}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
                     onError={() => {
                         setIsLoading(false);
                         setIsPlaying(false);

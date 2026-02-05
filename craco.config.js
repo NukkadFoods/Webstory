@@ -1,4 +1,5 @@
 const webpack = require('webpack');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = {
   webpack: {
@@ -39,11 +40,13 @@ module.exports = {
       }),
     ],
   },
-  // Update to use setupMiddlewares instead of deprecated middleware options
   devServer: {
-    setupMiddlewares: (middlewares, devServer) => {
-      // You can add custom middlewares here if needed
-      return middlewares;
-    },
+    proxy: {
+      '/api': {
+        target: 'https://webstorybackend.onrender.com',
+        changeOrigin: true,
+        secure: true,
+      }
+    }
   }
 };

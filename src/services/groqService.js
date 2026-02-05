@@ -1,4 +1,5 @@
-const API_URL = process.env.REACT_APP_API_URL;
+const isDevelopment = process.env.NODE_ENV === 'development';
+const API_URL = isDevelopment ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
 
 /**
  * Generates expert commentary for a news article

@@ -3,7 +3,8 @@ import apiConfig, { makeAPIRequest, getAPIBaseURL } from './apiConfig';
 import browserCache from './browserCache';
 
 // Legacy support - will be dynamically set by apiConfig
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+const isDevelopment = process.env.NODE_ENV === 'development';
+const API_BASE_URL = isDevelopment ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
 
 /**
  * Save an article via API
@@ -335,7 +336,8 @@ const transformByline = (byline, section) => {
 
 // Get API key from environment variables
 const API_KEY = process.env.REACT_APP_NYT_API_KEY || 'yourkey';
-const BASE_URL = process.env.REACT_APP_API_URL;
+const isDev = process.env.NODE_ENV === 'development';
+const BASE_URL = isDev ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
 
 // Function to get articles using your backend API with robust error handling and fallbacks
 export const getArticles = async (section = 'all', limit = 20) => {

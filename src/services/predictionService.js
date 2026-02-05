@@ -64,7 +64,8 @@ Example format:
 
   async backgroundFetch(topic) {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL;
+      const isDev = process.env.NODE_ENV === 'development';
+      const API_BASE_URL = isDev ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
       const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(topic)}`);
       const results = await response.json();
       

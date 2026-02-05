@@ -1,7 +1,8 @@
 import { mockArticles } from './mockData';
 
 // Get backend URL from environment variables
-const BASE_URL = process.env.REACT_APP_API_URL;
+const isDevelopment = process.env.NODE_ENV === 'development';
+const BASE_URL = isDevelopment ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
 
 export const getTopStories = async (section = 'home') => {
   try {

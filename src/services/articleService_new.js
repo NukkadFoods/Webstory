@@ -1,5 +1,6 @@
 // Frontend article service - uses API calls to backend
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+const isDevelopment = process.env.NODE_ENV === 'development';
+const API_BASE_URL = isDevelopment ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
 
 /**
  * Save an article via API

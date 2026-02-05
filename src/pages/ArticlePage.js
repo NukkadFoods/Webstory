@@ -25,6 +25,17 @@ const ArticlePage = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [audioSection, setAudioSection] = useState(-1); // -1 = not playing, 0+ = section index
   const [audioProgress, setAudioProgress] = useState({ sectionIndex: -1, sectionProgress: 0, isPlaying: false });
+  const [isImmersiveMode, setIsImmersiveMode] = useState(false); // Separate state - persists when paused
+
+  // Memoized callbacks to prevent infinite loops
+  const handleSectionChange = useCallback((idx) => setAudioSection(idx), []);
+  const handleProgressUpdate = useCallback((progress) => {
+    setAudioProgress(progress);
+    // Enter immersive mode when audio starts playing on mobile
+    if (progress.isPlaying && window.innerWidth < 640) {
+      setIsImmersiveMode(true);
+    }
+  }, []);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [showReels, setShowReels] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -73,6 +84,21 @@ const ArticlePage = () => {
       return () => clearTimeout(timer);
     }
   }, [audioProgress.contentProgress, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
+
+  // Auto-scroll for immersive mobile mode - scroll current sentence to center
+  useEffect(() => {
+    if (!isMobile || !audioProgress.isPlaying || !commentaryScrollRef.current) return;
+
+    const container = commentaryScrollRef.current;
+    const currentSentence = container.querySelector('[data-current="true"]');
+
+    if (currentSentence) {
+      currentSentence.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [isMobile, audioProgress.isPlaying, audioProgress.contentProgress, audioProgress.sectionIndex]);
 
   // Interval-based scroll (every 100ms while playing for smooth tracking)
   useEffect(() => {
@@ -159,7 +185,8 @@ const ArticlePage = () => {
       const fetchRelatedArticles = async () => {
         try {
           console.log('📰 Fetching related articles for section:', article.section);
-          const API_BASE_URL = process.env.REACT_APP_API_URL;
+          const isDev = process.env.NODE_ENV === 'development';
+          const API_BASE_URL = isDev ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
           const response = await fetch(`${API_BASE_URL}/api/articles?category=${article.section}&limit=5`);
           if (response.ok) {
             const data = await response.json();
@@ -225,7 +252,8 @@ const ArticlePage = () => {
               pollCount++;
 
               try {
-                const API_BASE_URL = process.env.REACT_APP_API_URL;
+                const isDev = process.env.NODE_ENV === 'development';
+                const API_BASE_URL = isDev ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
                 const pollResponse = await fetch(`${API_BASE_URL}/api/articles/${encodeURIComponent(id)}?ai=true`);
 
                 if (pollResponse.ok) {
@@ -421,12 +449,319 @@ const ArticlePage = () => {
         </div>
       )}
 
-      <Header />
+      {/* Header - Hidden on mobile when in immersive mode */}
+      <div className={`${isMobile && isImmersiveMode ? 'hidden' : ''}`}>
+        <Header />
+      </div>
+
+      {/* MOBILE IMMERSIVE MODE - Full screen when in immersive mode (persists when paused) */}
+      {isMobile && isImmersiveMode && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          {/* Fixed Image Section - Top 55% of screen */}
+          <div className="relative h-[55vh] flex-shrink-0">
+            <img
+              src={article.imageUrl || article.multimedia?.[0]?.url}
+              alt={article.title}
+              className="w-full h-full object-cover"
+            />
+            {/* Subtle gradient overlay for readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
+
+            {/* Title on image */}
+            <div className="absolute top-12 left-4 right-12">
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className="bg-blue-600/80 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
+              </div>
+              <h1 className="text-lg font-bold text-white leading-tight font-serif line-clamp-2 drop-shadow-lg">{article.title}</h1>
+            </div>
+
+            {/* Audio Player Overlay - Glassmorphic transparent design */}
+            <div className="absolute bottom-0 left-0 right-0 p-3">
+              <div className="backdrop-blur-md bg-white/10 rounded-xl border border-white/20 shadow-lg">
+                {article.aiCommentary && (
+                  <AudioPlayer
+                    commentary={article.aiCommentary}
+                    title={article.title}
+                    onSectionChange={handleSectionChange}
+                    onProgressUpdate={handleProgressUpdate}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Exit fullscreen button - exits immersive mode */}
+            <button
+              onClick={() => {
+                setIsImmersiveMode(false);
+                window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: 'exit-button' } }));
+              }}
+              className="absolute top-4 right-4 w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg border border-white/30"
+            >
+              ✕
+            </button>
+
+            {/* Live indicator */}
+            <div className="absolute top-4 left-4 flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/30">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-white text-xs font-bold uppercase">Live</span>
+            </div>
+          </div>
+
+          {/* Scrolling Text Section - Bottom 45% of screen */}
+          <div
+            ref={commentaryScrollRef}
+            className="flex-1 overflow-y-auto bg-gradient-to-b from-black via-gray-900 to-gray-900 px-4 pt-4 pb-20"
+            style={{
+              maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)'
+            }}
+          >
+            {/* Section indicator */}
+            <div className="text-center mb-4">
+              <span className="text-blue-400 text-xs font-bold uppercase tracking-wider">
+                {audioSection === 0 ? '🔑 Key Points' :
+                 audioSection === 1 ? '📊 Impact Analysis' :
+                 audioSection === 2 ? '🔮 Future Outlook' :
+                 '🎙️ Introduction'}
+              </span>
+            </div>
+
+            {/* Commentary text with WORD-BY-WORD karaoke highlighting - MATCHES DESKTOP SYNC */}
+            <div className="text-white text-lg leading-relaxed font-serif">
+              {(() => {
+                const text = displayedCommentary || article.aiCommentary || '';
+                
+                // Parse into sections EXACTLY like desktop
+                const sections = [];
+                const keyPointsMatch = text.match(/Key Points/i);
+                const impactMatch = text.match(/Impact Analysis/i);
+                const outlookMatch = text.match(/Future Outlook/i);
+
+                if (keyPointsMatch && impactMatch && outlookMatch) {
+                  sections.push({
+                    title: 'Key Points',
+                    icon: '🔑',
+                    content: text.substring(keyPointsMatch.index + 'Key Points'.length, impactMatch.index).trim()
+                  });
+                  sections.push({
+                    title: 'Impact Analysis',
+                    icon: '📊',
+                    content: text.substring(impactMatch.index + 'Impact Analysis'.length, outlookMatch.index).trim()
+                  });
+                  sections.push({
+                    title: 'Future Outlook',
+                    icon: '🔮',
+                    content: text.substring(outlookMatch.index + 'Future Outlook'.length).trim()
+                  });
+                } else {
+                  const paragraphs = text.split('\n\n').filter(p => p.trim());
+                  sections.push({ title: 'Overview', icon: '🔑', content: paragraphs[0] || '' });
+                  sections.push({ title: 'Analysis', icon: '📊', content: paragraphs[1] || '' });
+                  sections.push({ title: 'Outlook', icon: '🔮', content: paragraphs[2] || '' });
+                }
+
+                // Speech weight function - SAME as AudioPlayer
+                const getSpeechWeight = (text) => {
+                  if (!text) return 0;
+                  let weight = 0;
+                  for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    if (/[A-Z]/.test(char)) weight += 1.5;
+                    else if (/[0-9]/.test(char)) weight += 1.2;
+                    else if ([',', ';', ':'].includes(char)) weight += 3;
+                    else if (['.', '!', '?'].includes(char)) weight += 6;
+                    else weight += 1;
+                  }
+                  return weight;
+                };
+
+                // Get current section from audioProgress
+                const currentSectionIdx = audioProgress.sectionIndex;
+                const isReadingHeader = audioProgress.isReadingHeader;
+                const shouldHighlight = currentSectionIdx >= 0 && audioProgress.isPlaying && !isReadingHeader;
+
+                return sections.map((section, idx) => {
+                  const isActiveSection = idx === currentSectionIdx;
+                  const isPastSection = idx < currentSectionIdx;
+                  const isFutureSection = idx > currentSectionIdx;
+
+                  // Get sentences for this section
+                  const sentences = section.content.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+
+                  if (!isActiveSection) {
+                    // Past or future sections - show as faded text
+                    return (
+                      <div key={idx} className={`mb-6 ${isPastSection ? 'opacity-30' : isFutureSection ? 'opacity-50' : ''}`}>
+                        <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${isPastSection ? 'text-gray-600' : 'text-blue-400'}`}>
+                          {section.icon} {section.title}
+                        </div>
+                        <p className={`text-base ${isPastSection ? 'text-gray-700' : 'text-gray-400'}`}>
+                          {section.content}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  // ACTIVE SECTION - word-by-word highlighting
+                  if (!shouldHighlight) {
+                    return (
+                      <div key={idx} className="mb-6">
+                        <div className="text-xs font-bold uppercase tracking-wider mb-2 text-yellow-400 flex items-center gap-2">
+                          {section.icon} {section.title}
+                          <span className="text-[10px] text-blue-300 animate-pulse">🎙️ Reading title...</span>
+                        </div>
+                        <p className="text-gray-300 text-base">{section.content}</p>
+                      </div>
+                    );
+                  }
+
+                  // Calculate current sentence and word using weighted progress
+                  const totalWeight = sentences.reduce((sum, s) => sum + getSpeechWeight(s), 0);
+                  const progress = Math.min(audioProgress.contentProgress || 0, 1);
+                  const targetWeight = progress * totalWeight;
+
+                  let currentSentenceIndex = 0;
+                  let accumulatedWeight = 0;
+                  let weightInCurrentSentence = 0;
+
+                  for (let i = 0; i < sentences.length; i++) {
+                    const sWeight = getSpeechWeight(sentences[i]);
+                    if (accumulatedWeight + sWeight > targetWeight) {
+                      currentSentenceIndex = i;
+                      weightInCurrentSentence = targetWeight - accumulatedWeight;
+                      break;
+                    }
+                    accumulatedWeight += sWeight;
+                    if (i === sentences.length - 1) {
+                      currentSentenceIndex = sentences.length - 1;
+                      weightInCurrentSentence = sWeight;
+                    }
+                  }
+
+                  return (
+                    <div key={idx} className="mb-6">
+                      <div className="text-xs font-bold uppercase tracking-wider mb-2 text-yellow-400 flex items-center gap-2">
+                        {section.icon} {section.title}
+                        <span className="flex items-center gap-0.5">
+                          <span className="w-0.5 h-2 bg-yellow-400 rounded animate-pulse"></span>
+                          <span className="w-0.5 h-3 bg-yellow-400 rounded animate-pulse delay-75"></span>
+                          <span className="w-0.5 h-2 bg-yellow-400 rounded animate-pulse delay-150"></span>
+                        </span>
+                      </div>
+                      <div className="space-y-3">
+                        {sentences.map((sentence, sentenceIdx) => {
+                          const isCurrentSentence = sentenceIdx === currentSentenceIndex;
+                          const isPastSentence = sentenceIdx < currentSentenceIndex;
+
+                          if (isCurrentSentence) {
+                            const words = sentence.split(/\s+/);
+                            let currentWordIndex = 0;
+                            let accWordWeight = 0;
+
+                            for (let i = 0; i < words.length; i++) {
+                              const wWeight = getSpeechWeight(words[i]);
+                              if (accWordWeight + wWeight >= weightInCurrentSentence) {
+                                currentWordIndex = i;
+                                break;
+                              }
+                              accWordWeight += wWeight + 1;
+                              if (i === words.length - 1) currentWordIndex = words.length - 1;
+                            }
+
+                            return (
+                              <p key={sentenceIdx} data-current="true" className="leading-relaxed">
+                                {words.map((word, wordIdx) => {
+                                  const isCurrentWord = wordIdx === currentWordIndex;
+                                  const isPastWord = wordIdx < currentWordIndex;
+
+                                  return (
+                                    <span
+                                      key={`mobile-${idx}-${sentenceIdx}-${wordIdx}`}
+                                      ref={isCurrentWord ? highlightedWordRef : null}
+                                      data-highlighted={isCurrentWord ? 'true' : undefined}
+                                      className={`inline-block mr-1.5 rounded px-1 py-0.5 transition-all duration-100 ${
+                                        isCurrentWord
+                                          ? 'bg-yellow-400 text-gray-900 font-bold text-xl shadow-lg ring-2 ring-yellow-300 scale-110'
+                                          : isPastWord
+                                            ? 'text-gray-400 text-base'
+                                            : 'text-white text-base'
+                                      }`}
+                                    >
+                                      {word}
+                                    </span>
+                                  );
+                                })}
+                              </p>
+                            );
+                          }
+
+                          return (
+                            <p
+                              key={sentenceIdx}
+                              className={`text-base ${isPastSentence ? 'text-gray-500' : 'text-gray-300'}`}
+                            >
+                              {sentence}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Spacer for scroll */}
+            <div className="h-32" />
+          </div>
+        </div>
+      )}
 
       {/* Main Layout - Responsive */}
-      <main className="w-full px-3 sm:px-4 py-3 sm:py-4">
-        {/* Title Section - Full Width */}
-        <div className="mb-3 sm:mb-4">
+      <main className={`w-full px-3 sm:px-4 py-3 sm:py-4 ${isMobile && isImmersiveMode ? 'hidden' : ''}`}>
+
+        {/* MOBILE: Hero Image with Title Overlay (Normal mode - not playing) */}
+        <div className="block sm:hidden mb-3">
+          <div className="relative aspect-[4/5] w-full rounded-xl overflow-hidden shadow-lg bg-gray-900">
+            <img
+              src={article.imageUrl || article.multimedia?.[0]?.url}
+              alt={article.title}
+              className="w-full h-full object-cover"
+            />
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+            {/* Title overlay on image */}
+            <div className="absolute top-4 left-4 right-4">
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className="bg-blue-600/80 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
+                <span className="text-gray-300 text-[10px] py-1"><FontAwesomeIcon icon={faClock} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
+              </div>
+              <h1 className="text-xl font-bold text-white leading-tight font-serif drop-shadow-lg">{article.title}</h1>
+            </div>
+
+            {/* Audio Player - Inside image with glassmorphic overlay */}
+            {article.aiCommentary && (
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <div className="backdrop-blur-md bg-white/10 rounded-xl border border-white/20 shadow-lg">
+                  <AudioPlayer
+                    commentary={article.aiCommentary}
+                    title={article.title}
+                    onSectionChange={handleSectionChange}
+                    onProgressUpdate={handleProgressUpdate}
+                  />
+                </div>
+                {/* Tap hint */}
+                <p className="text-center text-white/60 text-[10px] mt-2">
+                  ▶ Tap play for immersive mode
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* DESKTOP: Title Section - Full Width */}
+        <div className="hidden sm:block mb-3 sm:mb-4">
           <div className="flex flex-wrap gap-2 mb-2 sm:mb-3">
             <span className="bg-blue-100 text-blue-800 text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
             <span className="text-gray-400 text-[10px] sm:text-xs py-1"><FontAwesomeIcon icon={faClock} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
@@ -434,13 +769,13 @@ const ArticlePage = () => {
           <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight font-serif">{article.title}</h1>
         </div>
 
-        {/* 60/40 Split Layout: Image+Player | Text - Independent Scrolling */}
-        <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-3 sm:gap-4 lg:gap-5">
+        {/* DESKTOP: 60/40 Split Layout: Image+Player | Text */}
+        <div className="hidden sm:grid grid-cols-1 lg:grid-cols-[60%_40%] gap-3 sm:gap-4 lg:gap-5">
 
-          {/* LEFT SIDE (60%): Image + Audio Player - Sticky on ALL screens */}
+          {/* LEFT SIDE (60%): Image + Audio Player - Sticky */}
           <div className="sticky top-0 z-10 self-start flex flex-col bg-white pb-2">
             {/* Large Image Container */}
-            <div className="rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-900 mb-2 flex-shrink-0 w-full h-44 sm:h-56 md:h-64 lg:h-80 xl:h-96 flex items-center justify-center">
+            <div className="rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-900 mb-2 flex-shrink-0 w-full h-56 md:h-64 lg:h-80 xl:h-96 flex items-center justify-center">
               <img
                 src={article.imageUrl || article.multimedia?.[0]?.url}
                 alt={article.title}
@@ -460,7 +795,7 @@ const ArticlePage = () => {
 
                 {/* Auto-scroll toggle - only visible on desktop when playing */}
                 {audioProgress.isPlaying && !isMobile && (
-                  <div className="hidden sm:flex justify-center mt-2">
+                  <div className="flex justify-center mt-2">
                     <button
                       onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
                       className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
