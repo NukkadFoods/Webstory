@@ -751,13 +751,70 @@ const ArticlePage = () => {
                     onProgressUpdate={handleProgressUpdate}
                   />
                 </div>
-                {/* Tap hint */}
-                <p className="text-center text-white/60 text-[10px] mt-2">
-                  ▶ Tap play for immersive mode
-                </p>
               </div>
             )}
           </div>
+
+          {/* MOBILE: AI Commentary Section - Below Image */}
+          {(displayedCommentary || article.aiCommentary) && (
+            <div className="bg-white border-2 border-blue-600 rounded-xl overflow-hidden shadow-lg">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-white font-bold text-sm flex items-center gap-1.5">
+                    <FontAwesomeIcon icon={faBolt} className="text-yellow-300 text-sm" />
+                    <span>FOREXYY INSIGHT</span>
+                    {isTyping && <span className="text-[10px] text-blue-200 animate-pulse ml-1">✍️</span>}
+                  </h3>
+                  <FontAwesomeIcon icon={faRobot} className="text-white/70 text-sm" />
+                </div>
+              </div>
+
+              {/* Commentary Content */}
+              <div className="p-3 text-gray-700 text-sm leading-relaxed">
+                {(() => {
+                  const text = displayedCommentary || article.aiCommentary || '';
+
+                  // Parse into sections
+                  const sections = [];
+                  const keyPointsMatch = text.match(/Key Points/i);
+                  const impactMatch = text.match(/Impact Analysis/i);
+                  const outlookMatch = text.match(/Future Outlook/i);
+
+                  if (keyPointsMatch && impactMatch && outlookMatch) {
+                    sections.push({
+                      title: 'Key Points',
+                      icon: '🔑',
+                      content: text.substring(keyPointsMatch.index + 'Key Points'.length, impactMatch.index).trim()
+                    });
+                    sections.push({
+                      title: 'Impact Analysis',
+                      icon: '📊',
+                      content: text.substring(impactMatch.index + 'Impact Analysis'.length, outlookMatch.index).trim()
+                    });
+                    sections.push({
+                      title: 'Future Outlook',
+                      icon: '🔮',
+                      content: text.substring(outlookMatch.index + 'Future Outlook'.length).trim()
+                    });
+                  } else {
+                    // Fallback: show as single block
+                    return <p>{text}</p>;
+                  }
+
+                  return sections.map((section, idx) => (
+                    <div key={idx} className={`${idx > 0 ? 'mt-3 pt-3 border-t border-gray-200' : ''}`}>
+                      <h4 className="font-bold text-blue-700 text-xs uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                        <span>{section.icon}</span>
+                        {section.title}
+                      </h4>
+                      <p className="text-gray-600 text-sm leading-relaxed">{section.content}</p>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* DESKTOP: Title Section - Full Width */}
