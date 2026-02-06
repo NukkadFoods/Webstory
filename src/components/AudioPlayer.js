@@ -641,10 +641,9 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
         <div className="w-full">
             <div
                 className={`rounded-xl p-2 sm:p-3 transition-all duration-300 ease-out
-                    sm:bg-gradient-to-br sm:from-gray-900 sm:via-gray-800 sm:to-gray-900 sm:shadow-xl sm:border sm:border-gray-700
                     ${showGlassEffect
-                        ? 'max-sm:backdrop-blur-md max-sm:bg-white/15 max-sm:border max-sm:border-white/25 max-sm:shadow-lg'
-                        : 'max-sm:bg-transparent max-sm:backdrop-blur-0 max-sm:border-0 max-sm:shadow-none'}`}
+                        ? 'backdrop-blur-md bg-white/15 border border-white/25 shadow-lg'
+                        : 'bg-transparent backdrop-blur-0 border-0 shadow-none'}`}
                 onTouchStart={() => setIsHovered(true)}
                 onTouchEnd={() => setTimeout(() => setIsHovered(false), 3000)}
                 onMouseEnter={() => setIsHovered(true)}
@@ -652,11 +651,11 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
             >
                 {/* Reporter Info */}
                 <div className="flex items-center gap-1.5 sm:gap-3 mb-1.5 sm:mb-3">
-                    <div className={`relative flex-shrink-0 transition-all duration-300 ${!showGlassEffect ? 'max-sm:drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]' : ''}`}>
+                    <div className={`relative flex-shrink-0 transition-all duration-300 ${!showGlassEffect ? 'drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]' : ''}`}>
                         <img
                             src="/images/rachel-anderson.jpeg"
                             alt="Rachel Anderson"
-                            className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full object-cover transition-all duration-300 border-2 sm:border-blue-500 sm:shadow-lg ${showGlassEffect ? 'border-blue-500 shadow-lg' : 'max-sm:border-white/50 max-sm:shadow-xl'}`}
+                            className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full object-cover transition-all duration-300 border-2 ${showGlassEffect ? 'border-blue-500 shadow-lg' : 'border-white/50 shadow-xl'}`}
                             onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
@@ -671,10 +670,10 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                     </div>
 
                     <div className="flex-1 min-w-0">
-                        <h3 className={`font-bold text-[10px] sm:text-sm leading-tight transition-all duration-300 text-white ${!showGlassEffect ? 'max-sm:[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%),_0_1px_3px_rgb(0_0_0_/_100%)]' : ''}`}>
+                        <h3 className={`font-bold text-[10px] sm:text-sm leading-tight transition-all duration-300 text-white ${!showGlassEffect ? '[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%),_0_1px_3px_rgb(0_0_0_/_100%)]' : ''}`}>
                             Rachel Anderson
                         </h3>
-                        <p className={`text-[8px] sm:text-[10px] font-medium uppercase tracking-wider truncate transition-all duration-300 text-blue-400 ${!showGlassEffect ? 'max-sm:text-blue-300 max-sm:[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%),_0_1px_3px_rgb(0_0_0_/_100%)]' : ''}`}>
+                        <p className={`text-[8px] sm:text-[10px] font-medium uppercase tracking-wider truncate transition-all duration-300 ${!showGlassEffect ? 'text-blue-300 [text-shadow:_0_2px_8px_rgb(0_0_0_/_90%),_0_1px_3px_rgb(0_0_0_/_100%)]' : 'text-blue-400'}`}>
                             Senior Forexyy Reporter
                         </p>
                     </div>
@@ -697,10 +696,10 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                                 disabled={preloadStatus !== 'ready'}
                                 className={`flex-1 text-center py-1 px-1 rounded text-[9px] font-medium transition-all cursor-pointer
                                     ${idx === currentSection
-                                        ? 'bg-blue-600 text-white'
+                                        ? 'bg-blue-600 text-white shadow-md'
                                         : idx < currentSection
-                                            ? 'bg-blue-900/50 text-blue-300 hover:bg-blue-800/50'
-                                            : 'bg-gray-700/50 text-gray-400 hover:bg-gray-600/50'
+                                            ? 'bg-white/20 text-blue-200 hover:bg-white/30'
+                                            : 'bg-white/10 text-white/70 hover:bg-white/20'
                                     }
                                     ${preloadStatus !== 'ready' ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}
                                 `}
@@ -737,7 +736,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
 
                     {/* Seekbar */}
                     <div className="flex-1 min-w-0">
-                        <div className={`relative h-2 rounded-full overflow-visible transition-all duration-300 sm:bg-gray-700 ${showGlassEffect ? 'bg-white/20' : 'max-sm:bg-transparent max-sm:border max-sm:border-white/50 max-sm:shadow-[0_2px_10px_rgba(0,0,0,0.9)]'}`}>
+                        <div className={`relative h-2 rounded-full overflow-visible transition-all duration-300 ${showGlassEffect ? 'bg-white/20' : 'bg-transparent border border-white/50 shadow-[0_2px_10px_rgba(0,0,0,0.9)]'}`}>
                             {/* Buffer Progress (gray) */}
                             <div
                                 className="absolute top-0 left-0 h-full bg-gray-500/50 rounded-full transition-all duration-300"
@@ -746,7 +745,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
 
                             {/* Playback Progress (blue) */}
                             <div
-                                className={`absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-75 ${!showGlassEffect ? 'max-sm:shadow-[0_0_8px_rgba(59,130,246,0.8)]' : ''}`}
+                                className={`absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-75 ${!showGlassEffect ? 'shadow-[0_0_8px_rgba(59,130,246,0.8)]' : ''}`}
                                 style={{ width: `${Math.min(progress, 100)}%` }}
                             />
 
@@ -781,10 +780,10 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
 
                         {/* Time Display */}
                         <div className="flex justify-between mt-1 px-0.5">
-                            <span className={`text-[10px] sm:text-xs font-mono tabular-nums transition-all duration-300 sm:text-gray-400 ${showGlassEffect ? 'text-white/80' : 'max-sm:text-white max-sm:[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%)]'}`}>
+                            <span className={`text-[10px] sm:text-xs font-mono tabular-nums transition-all duration-300 ${showGlassEffect ? 'text-white/80' : 'text-white [text-shadow:_0_2px_8px_rgb(0_0_0_/_90%)]'}`}>
                                 {formatTime(currentTime)}
                             </span>
-                            <span className={`text-[10px] sm:text-xs font-mono tabular-nums transition-all duration-300 ${preloadStatus === 'loading' ? 'text-yellow-400' : ''} ${showGlassEffect ? 'text-white/50' : 'sm:text-gray-500 max-sm:text-white/80 max-sm:[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%)]'}`}>
+                            <span className={`text-[10px] sm:text-xs font-mono tabular-nums transition-all duration-300 ${preloadStatus === 'loading' ? 'text-yellow-400' : ''} ${showGlassEffect ? 'text-white/50' : 'text-white/80 [text-shadow:_0_2px_8px_rgb(0_0_0_/_90%)]'}`}>
                                 {preloadStatus === 'loading' && bufferProgress < 100 ? `~${formatTime(duration)}` : formatTime(duration)}
                             </span>
                         </div>
@@ -793,7 +792,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                     {/* Mute Button */}
                     <button
                         onClick={toggleMute}
-                        className={`p-2 sm:p-1.5 hover:text-white active:text-blue-400 transition-all duration-300 flex-shrink-0 touch-manipulation sm:text-gray-400 ${showGlassEffect ? 'text-gray-400' : 'max-sm:text-white max-sm:drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]'}`}
+                        className={`p-2 sm:p-1.5 hover:text-white active:text-blue-400 transition-all duration-300 flex-shrink-0 touch-manipulation ${showGlassEffect ? 'text-gray-400' : 'text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]'}`}
                     >
                         {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                     </button>

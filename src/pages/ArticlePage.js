@@ -31,8 +31,8 @@ const ArticlePage = () => {
   const handleSectionChange = useCallback((idx) => setAudioSection(idx), []);
   const handleProgressUpdate = useCallback((progress) => {
     setAudioProgress(progress);
-    // Enter immersive mode when audio starts playing on mobile
-    if (progress.isPlaying && window.innerWidth < 640) {
+    // Enter immersive mode when audio starts playing (both mobile and desktop)
+    if (progress.isPlaying) {
       setIsImmersiveMode(true);
     }
   }, []);
@@ -48,6 +48,18 @@ const ArticlePage = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Scroll to top when article loads or changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [id]);
+
+  // Reset teleprompter scroll when entering immersive mode
+  useEffect(() => {
+    if (isImmersiveMode && commentaryScrollRef.current) {
+      commentaryScrollRef.current.scrollTop = 0;
+    }
+  }, [isImmersiveMode]);
+
   // Refs for auto-scroll functionality
   const highlightedWordRef = useRef(null);
   const commentaryContainerRef = useRef(null);
@@ -57,23 +69,28 @@ const ArticlePage = () => {
   const scrollToHighlightedWord = useCallback(() => {
     if (!autoScrollEnabled || !audioProgress.isPlaying) return;
 
-    // Try ref first, then fallback to querySelector
-    let highlightedEl = highlightedWordRef.current;
-    if (!highlightedEl) {
-      const scrollContainer = commentaryScrollRef.current;
-      if (scrollContainer) {
-        highlightedEl = scrollContainer.querySelector('[data-highlighted="true"]');
-      }
+    const scrollContainer = commentaryScrollRef.current;
+    if (!scrollContainer) return;
+
+    // Find the current sentence (paragraph with data-current="true")
+    const currentParagraph = scrollContainer.querySelector('[data-current="true"]');
+    if (!currentParagraph) return;
+
+    // Get positions using getBoundingClientRect for accuracy
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const paragraphRect = currentParagraph.getBoundingClientRect();
+
+    // Calculate where the paragraph center is relative to container center
+    const containerCenter = containerRect.height / 2;
+    const paragraphCenterRelativeToContainer = (paragraphRect.top - containerRect.top) + (paragraphRect.height / 2);
+
+    // How much we need to scroll to center the paragraph
+    const scrollOffset = paragraphCenterRelativeToContainer - containerCenter;
+
+    // Apply smooth incremental scroll - faster response
+    if (Math.abs(scrollOffset) > 2) {
+      scrollContainer.scrollTop += scrollOffset * 0.3;
     }
-
-    if (!highlightedEl) return;
-
-    // Use scrollIntoView for reliable centering
-    highlightedEl.scrollIntoView({
-      behavior: 'auto',
-      block: 'center',
-      inline: 'nearest'
-    });
   }, [autoScrollEnabled, audioProgress.isPlaying]);
 
   // Trigger auto-scroll when audio progress updates - more frequent for smoother tracking
@@ -85,28 +102,21 @@ const ArticlePage = () => {
     }
   }, [audioProgress.contentProgress, audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
 
-  // Auto-scroll for immersive mobile mode - scroll current sentence to center
+  // Auto-scroll for immersive mode (both mobile and desktop) - keep highlighted word centered
   useEffect(() => {
-    if (!isMobile || !audioProgress.isPlaying || !commentaryScrollRef.current) return;
+    if (!isImmersiveMode || !audioProgress.isPlaying || !commentaryScrollRef.current) return;
 
-    const container = commentaryScrollRef.current;
-    const currentSentence = container.querySelector('[data-current="true"]');
+    // Call the main scroll function which now handles centering properly
+    scrollToHighlightedWord();
+  }, [isImmersiveMode, audioProgress.isPlaying, audioProgress.contentProgress, audioProgress.sectionIndex, audioProgress.currentTime, scrollToHighlightedWord]);
 
-    if (currentSentence) {
-      currentSentence.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
-    }
-  }, [isMobile, audioProgress.isPlaying, audioProgress.contentProgress, audioProgress.sectionIndex]);
-
-  // Interval-based scroll (every 100ms while playing for smooth tracking)
+  // Interval-based scroll (every 16ms ~60fps while playing for smooth tracking)
   useEffect(() => {
     if (!audioProgress.isPlaying || !autoScrollEnabled) return;
 
     const scrollInterval = setInterval(() => {
       scrollToHighlightedWord();
-    }, 100);
+    }, 16);
 
     return () => clearInterval(scrollInterval);
   }, [audioProgress.isPlaying, autoScrollEnabled, scrollToHighlightedWord]);
@@ -449,10 +459,265 @@ const ArticlePage = () => {
         </div>
       )}
 
-      {/* Header - Hidden on mobile when in immersive mode */}
-      <div className={`${isMobile && isImmersiveMode ? 'hidden' : ''}`}>
+      {/* Header - Hidden when in immersive mode */}
+      <div className={`${isImmersiveMode ? 'hidden' : ''}`}>
         <Header />
       </div>
+
+      {/* DESKTOP IMMERSIVE MODE - Full screen with transparent teleprompter overlay */}
+      {!isMobile && isImmersiveMode && (
+        <div className="fixed inset-0 z-50 bg-black">
+          {/* Full-screen background image */}
+          <img
+            src={article.imageUrl || article.multimedia?.[0]?.url}
+            alt={article.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+
+          {/* Subtle gradient for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/30" />
+
+          {/* Title on image - TOP LEFT */}
+          <div className="absolute top-16 left-6 right-[45%] z-10">
+            <div className="flex flex-wrap gap-2 mb-3">
+              <span className="bg-blue-600/80 backdrop-blur text-white text-xs font-bold px-3 py-1.5 rounded uppercase">{article.section || 'News'}</span>
+              <span className="bg-white/20 backdrop-blur text-white text-xs px-3 py-1.5 rounded">
+                {new Date(article.published_date || Date.now()).toLocaleDateString()}
+              </span>
+            </div>
+            <h1 className="text-xl lg:text-2xl xl:text-3xl font-bold text-white leading-tight font-serif drop-shadow-lg line-clamp-3">{article.title}</h1>
+          </div>
+
+          {/* Audio Player - Bottom Left */}
+          <div className="absolute bottom-0 left-0 right-[45%] p-4 z-10">
+            {article.aiCommentary && (
+              <AudioPlayer
+                commentary={article.aiCommentary}
+                title={article.title}
+                onSectionChange={handleSectionChange}
+                onProgressUpdate={handleProgressUpdate}
+              />
+            )}
+          </div>
+
+          {/* Exit button */}
+          <button
+            onClick={() => {
+              setIsImmersiveMode(false);
+              window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: 'exit-button' } }));
+            }}
+            className="absolute top-4 left-4 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white text-lg font-bold shadow-lg border border-white/30 hover:bg-white/30 transition-all z-20"
+          >
+            ✕
+          </button>
+
+          {/* Live indicator */}
+          {audioProgress.isPlaying && (
+            <div className="absolute top-4 left-16 flex items-center gap-2 bg-red-500/80 backdrop-blur-md px-4 py-2 rounded-full z-20">
+              <span className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
+              <span className="text-white text-sm font-bold uppercase">Live</span>
+            </div>
+          )}
+
+          {/* Right Side - Teleprompter (3 lines visible, scrolls up) */}
+          <div className="absolute right-0 top-0 bottom-0 w-[45%] flex items-center justify-center">
+            {/* Teleprompter 3-line window with static background */}
+            <div className="relative w-full h-[180px] rounded-l-2xl bg-black/40 backdrop-blur-sm">
+              {/* Fade mask for 3 lines */}
+              <div
+                className="absolute inset-0 overflow-hidden rounded-l-2xl"
+                style={{
+                  maskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%)',
+                  WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%)'
+                }}
+              >
+                <div
+                  ref={commentaryScrollRef}
+                  className="h-full overflow-y-auto scrollbar-hide px-6 lg:px-8"
+                >
+                  {/* Top spacer - half container height to allow first line to center */}
+                  <div className="h-[90px]" />
+
+                  {/* Commentary - using section-based sync from audioProgress */}
+                  {(() => {
+                    const text = displayedCommentary || article.aiCommentary || '';
+
+                    // Parse into sections like AudioPlayer does
+                    const sections = [];
+                    const keyPointsMatch = text.match(/Key Points/i);
+                    const impactMatch = text.match(/Impact Analysis/i);
+                    const outlookMatch = text.match(/Future Outlook/i);
+
+                    if (keyPointsMatch && impactMatch && outlookMatch) {
+                      sections.push({
+                        title: 'Key Points',
+                        content: text.substring(keyPointsMatch.index + 'Key Points'.length, impactMatch.index).trim()
+                      });
+                      sections.push({
+                        title: 'Impact Analysis',
+                        content: text.substring(impactMatch.index + 'Impact Analysis'.length, outlookMatch.index).trim()
+                      });
+                      sections.push({
+                        title: 'Future Outlook',
+                        content: text.substring(outlookMatch.index + 'Future Outlook'.length).trim()
+                      });
+                    } else {
+                      const paragraphs = text.split('\n\n').filter(p => p.trim());
+                      sections.push({ title: 'Overview', content: paragraphs[0] || '' });
+                      sections.push({ title: 'Analysis', content: paragraphs[1] || '' });
+                      sections.push({ title: 'Outlook', content: paragraphs[2] || '' });
+                    }
+
+                    const getSpeechWeight = (text) => {
+                      if (!text) return 0;
+                      let weight = 0;
+                      for (let i = 0; i < text.length; i++) {
+                        const char = text[i];
+                        if (/[A-Z]/.test(char)) weight += 1.5;
+                        else if (/[0-9]/.test(char)) weight += 1.2;
+                        else if ([',', ';', ':'].includes(char)) weight += 3;
+                        else if (['.', '!', '?'].includes(char)) weight += 6;
+                        else weight += 1;
+                      }
+                      return weight;
+                    };
+
+                    // Use audioProgress section index and content progress for sync
+                    const currentSectionIdx = audioProgress.sectionIndex;
+                    const contentProgress = audioProgress.contentProgress || 0;
+                    const isReadingHeader = audioProgress.isReadingHeader;
+
+                    return sections.map((section, sectionIdx) => {
+                      const isActiveSection = sectionIdx === currentSectionIdx;
+                      const isPastSection = sectionIdx < currentSectionIdx;
+
+                      const sentences = section.content.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+
+                      // Calculate current sentence within active section
+                      let currentSentenceIndex = 0;
+                      let weightInCurrentSentence = 0;
+
+                      if (isActiveSection && !isReadingHeader && audioProgress.isPlaying) {
+                        const totalWeight = sentences.reduce((sum, s) => sum + getSpeechWeight(s), 0);
+                        const targetWeight = contentProgress * totalWeight;
+                        let accumulatedWeight = 0;
+
+                        for (let i = 0; i < sentences.length; i++) {
+                          const sWeight = getSpeechWeight(sentences[i]);
+                          if (accumulatedWeight + sWeight > targetWeight) {
+                            currentSentenceIndex = i;
+                            weightInCurrentSentence = targetWeight - accumulatedWeight;
+                            break;
+                          }
+                          accumulatedWeight += sWeight;
+                          if (i === sentences.length - 1) {
+                            currentSentenceIndex = sentences.length - 1;
+                            weightInCurrentSentence = sWeight;
+                          }
+                        }
+                      }
+
+                      return (
+                        <div key={sectionIdx} className="mb-4">
+                          {sentences.map((sentence, sentenceIdx) => {
+                            const isCurrentSentence = isActiveSection && sentenceIdx === currentSentenceIndex && !isReadingHeader;
+                            const isPastSentence = isPastSection || (isActiveSection && sentenceIdx < currentSentenceIndex);
+
+                            if (isCurrentSentence && audioProgress.isPlaying) {
+                              const words = sentence.split(/\s+/);
+                              let currentWordIndex = 0;
+                              let accWordWeight = 0;
+
+                              for (let i = 0; i < words.length; i++) {
+                                const wWeight = getSpeechWeight(words[i]);
+                                if (accWordWeight + wWeight >= weightInCurrentSentence) {
+                                  currentWordIndex = i;
+                                  break;
+                                }
+                                accWordWeight += wWeight + 1;
+                                if (i === words.length - 1) currentWordIndex = words.length - 1;
+                              }
+
+                              return (
+                                <p
+                                  key={sentenceIdx}
+                                  data-current="true"
+                                  className="text-lg lg:text-xl leading-[2] text-center font-serif py-1"
+                                >
+                                  {words.map((word, wordIdx) => {
+                                    const isCurrentWord = wordIdx === currentWordIndex;
+                                    const isPastWord = wordIdx < currentWordIndex;
+
+                                    return (
+                                      <span
+                                        key={`tele-${sectionIdx}-${sentenceIdx}-${wordIdx}`}
+                                        ref={isCurrentWord ? highlightedWordRef : null}
+                                        data-highlighted={isCurrentWord ? 'true' : undefined}
+                                        className={`inline ${
+                                          isCurrentWord
+                                            ? 'text-yellow-400 font-bold'
+                                            : isPastWord
+                                              ? 'text-white/50'
+                                              : 'text-white'
+                                        }`}
+                                      >
+                                        {word}{' '}
+                                      </span>
+                                    );
+                                  })}
+                                </p>
+                              );
+                            }
+
+                            return (
+                              <p
+                                key={sentenceIdx}
+                                className={`text-lg lg:text-xl leading-[2] text-center font-serif py-1 ${
+                                  isPastSentence ? 'text-white/30' : 'text-white/70'
+                                }`}
+                              >
+                                {sentence}
+                              </p>
+                            );
+                          })}
+                        </div>
+                      );
+                    });
+                  })()}
+
+                  {/* Bottom spacer - half container height to allow last line to center */}
+                  <div className="h-[90px]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Section indicator - floating at top */}
+            <div className="absolute top-6 left-0 right-0 text-center z-10">
+              <span className="bg-black/60 backdrop-blur-sm text-yellow-400 text-sm font-bold uppercase tracking-wider px-4 py-2 rounded-full">
+                {audioSection === 0 ? '🔑 Key Points' :
+                 audioSection === 1 ? '📊 Impact Analysis' :
+                 audioSection === 2 ? '🔮 Future Outlook' :
+                 '🎙️ Introduction'}
+              </span>
+            </div>
+
+            {/* Auto-scroll toggle - floating at bottom */}
+            <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10">
+              <button
+                onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  autoScrollEnabled
+                    ? 'bg-green-600 text-white'
+                    : 'bg-black/60 backdrop-blur-sm text-gray-300'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${autoScrollEnabled ? 'bg-green-300 animate-pulse' : 'bg-gray-500'}`}></span>
+                Auto-scroll {autoScrollEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MOBILE IMMERSIVE MODE - Full screen when in immersive mode (persists when paused) */}
       {isMobile && isImmersiveMode && (
@@ -716,7 +981,7 @@ const ArticlePage = () => {
       )}
 
       {/* Main Layout - Responsive */}
-      <main className={`w-full px-3 sm:px-4 py-3 sm:py-4 ${isMobile && isImmersiveMode ? 'hidden' : ''}`}>
+      <main className={`w-full px-3 sm:px-4 py-3 sm:py-4 ${isImmersiveMode ? 'hidden' : ''}`}>
 
         {/* MOBILE: Hero Image with Title Overlay (Normal mode - not playing) */}
         <div className="block sm:hidden mb-3">
@@ -826,44 +1091,46 @@ const ArticlePage = () => {
         <div className="hidden sm:grid grid-cols-1 lg:grid-cols-[60%_40%] gap-3 sm:gap-4 lg:gap-5">
 
           {/* LEFT SIDE (60%): Image + Audio Player - Sticky */}
-          <div className="sticky top-0 z-10 self-start flex flex-col bg-white pb-2">
-            {/* Large Image Container */}
-            <div className="rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-900 mb-2 flex-shrink-0 w-full h-56 md:h-64 lg:h-80 xl:h-96 flex items-center justify-center">
+          <div className="sticky top-0 z-10 self-start">
+            {/* Large Image Container with Audio Player Inside - matches commentary height */}
+            <div className="relative rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-900 w-full h-[70vh] lg:h-[calc(100vh-160px)]">
               <img
                 src={article.imageUrl || article.multimedia?.[0]?.url}
                 alt={article.title}
-                className="max-w-full max-h-full object-contain"
+                className="w-full h-full object-cover"
               />
+              {/* Gradient overlay for better player visibility */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+              {/* Audio Player - Inside Image */}
+              {article.aiCommentary && (
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <AudioPlayer
+                    commentary={article.aiCommentary}
+                    title={article.title}
+                    onSectionChange={(idx) => setAudioSection(idx)}
+                    onProgressUpdate={(progress) => setAudioProgress(progress)}
+                  />
+                </div>
+              )}
+
+              {/* Auto-scroll toggle - inside image, only visible when playing */}
+              {article.aiCommentary && audioProgress.isPlaying && !isMobile && (
+                <div className="absolute top-3 right-3">
+                  <button
+                    onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all backdrop-blur-md ${
+                      autoScrollEnabled
+                        ? 'bg-green-600/80 text-white'
+                        : 'bg-gray-700/80 text-gray-300'
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${autoScrollEnabled ? 'bg-green-300 animate-pulse' : 'bg-gray-500'}`}></span>
+                    Auto-scroll {autoScrollEnabled ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+              )}
             </div>
-
-            {/* Audio Player - Below Image */}
-            {article.aiCommentary && (
-              <div className="flex-shrink-0">
-                <AudioPlayer
-                  commentary={article.aiCommentary}
-                  title={article.title}
-                  onSectionChange={(idx) => setAudioSection(idx)}
-                  onProgressUpdate={(progress) => setAudioProgress(progress)}
-                />
-
-                {/* Auto-scroll toggle - only visible on desktop when playing */}
-                {audioProgress.isPlaying && !isMobile && (
-                  <div className="flex justify-center mt-2">
-                    <button
-                      onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                        autoScrollEnabled
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-700 text-gray-300'
-                      }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${autoScrollEnabled ? 'bg-green-300 animate-pulse' : 'bg-gray-500'}`}></span>
-                      Auto-scroll {autoScrollEnabled ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {/* RIGHT SIDE (40%): Text/Commentary - Scrollable on all screens */}
