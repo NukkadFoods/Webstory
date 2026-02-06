@@ -4,6 +4,57 @@ import { Play, Pause, Loader, Volume2, VolumeX } from 'lucide-react';
 // Use direct backend URL for TTS
 const API_BASE_URL = 'https://webstorybackend.onrender.com';
 
+// ============ SHARED AUDIO ELEMENT ============
+// Single audio element shared between all AudioPlayer instances
+let sharedAudio = null;
+let sharedAudioCommentary = null; // Track which commentary is loaded
+const sharedAudioListeners = new Set(); // Callbacks to notify all instances
+
+function getSharedAudio() {
+    if (!sharedAudio) {
+        sharedAudio = new Audio();
+        sharedAudio.preload = 'auto';
+
+        // Broadcast state changes to all listeners
+        sharedAudio.addEventListener('play', () => {
+            sharedAudioListeners.forEach(cb => cb({ type: 'play' }));
+        });
+        sharedAudio.addEventListener('pause', () => {
+            sharedAudioListeners.forEach(cb => cb({ type: 'pause' }));
+        });
+        sharedAudio.addEventListener('ended', () => {
+            sharedAudioListeners.forEach(cb => cb({ type: 'ended' }));
+        });
+        sharedAudio.addEventListener('timeupdate', () => {
+            sharedAudioListeners.forEach(cb => cb({
+                type: 'timeupdate',
+                currentTime: sharedAudio.currentTime,
+                duration: sharedAudio.duration
+            }));
+        });
+        sharedAudio.addEventListener('loadedmetadata', () => {
+            sharedAudioListeners.forEach(cb => cb({
+                type: 'loadedmetadata',
+                duration: sharedAudio.duration
+            }));
+        });
+        sharedAudio.addEventListener('progress', () => {
+            if (sharedAudio.buffered.length > 0 && sharedAudio.duration) {
+                const bufferedEnd = sharedAudio.buffered.end(sharedAudio.buffered.length - 1);
+                const bufferPercent = (bufferedEnd / sharedAudio.duration) * 100;
+                sharedAudioListeners.forEach(cb => cb({
+                    type: 'progress',
+                    bufferProgress: bufferPercent
+                }));
+            }
+        });
+        sharedAudio.addEventListener('error', (e) => {
+            sharedAudioListeners.forEach(cb => cb({ type: 'error', error: e }));
+        });
+    }
+    return sharedAudio;
+}
+
 // ============ SHARED AUDIO CACHE (MSE Approach) ============
 // This cache stores audio metadata and loading state
 const audioCache = new Map(); // commentary -> { audioId, size, duration, status, bufferProgress, listeners }
@@ -145,7 +196,6 @@ const formatTime = (seconds) => {
 };
 
 const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) => {
-    const audioRef = useRef(null);
     const playerIdRef = useRef(`audio-player-${Date.now()}-${Math.random()}`);
 
     // Callback refs
@@ -172,8 +222,71 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
     const [isHovered, setIsHovered] = useState(false);
 
     // ============ REFS ============
-    const timeIntervalRef = useRef(null);
     const mountedRef = useRef(true);
+
+    // ============ SHARED AUDIO SYNC ============
+    // Sync with shared audio element on mount
+    useEffect(() => {
+        const audio = getSharedAudio();
+
+        // If this commentary is already loaded in shared audio, sync state
+        if (sharedAudioCommentary === commentary) {
+            setIsPlaying(!audio.paused);
+            setCurrentTime(audio.currentTime || 0);
+            if (audio.duration && isFinite(audio.duration)) {
+                setDuration(audio.duration);
+            }
+            setIsMuted(audio.muted);
+        }
+
+        // Subscribe to shared audio events
+        const handleAudioEvent = (event) => {
+            // Only handle events for our commentary
+            if (sharedAudioCommentary !== commentary) return;
+            if (!mountedRef.current) return;
+
+            switch (event.type) {
+                case 'play':
+                    setIsPlaying(true);
+                    break;
+                case 'pause':
+                    setIsPlaying(false);
+                    break;
+                case 'ended':
+                    setIsPlaying(false);
+                    setCurrentTime(0);
+                    setCurrentSection(0);
+                    onSectionChangeRef.current?.(-1);
+                    break;
+                case 'timeupdate':
+                    setCurrentTime(event.currentTime || 0);
+                    if (event.duration && isFinite(event.duration)) {
+                        setDuration(event.duration);
+                    }
+                    break;
+                case 'loadedmetadata':
+                    if (event.duration && isFinite(event.duration)) {
+                        setDuration(event.duration);
+                    }
+                    break;
+                case 'progress':
+                    setBufferProgress(event.bufferProgress || 0);
+                    break;
+                case 'error':
+                    setIsPlaying(false);
+                    setError('Audio error');
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        sharedAudioListeners.add(handleAudioEvent);
+
+        return () => {
+            sharedAudioListeners.delete(handleAudioEvent);
+        };
+    }, [commentary]);
 
     const sections = useMemo(() => parseCommentaryIntoSections(commentary), [commentary]);
 
@@ -239,56 +352,28 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
         return duration * (introWeight / totalWeight);
     }, [duration, title, sections, getSpeechWeight]);
 
-    // ============ TIME UPDATE INTERVAL ============
-    const startTimeInterval = useCallback(() => {
-        if (timeIntervalRef.current) {
-            clearInterval(timeIntervalRef.current);
-        }
-
-        timeIntervalRef.current = setInterval(() => {
-            if (audioRef.current && !audioRef.current.paused && mountedRef.current) {
-                const time = audioRef.current.currentTime;
-                const dur = audioRef.current.duration;
-
-                setCurrentTime(time);
-
-                if (dur && isFinite(dur) && dur > 0) {
-                    setDuration(prev => Math.abs(dur - prev) > 0.5 ? dur : prev);
-                }
-            }
-        }, 50);
-    }, []);
-
-    const stopTimeInterval = useCallback(() => {
-        if (timeIntervalRef.current) {
-            clearInterval(timeIntervalRef.current);
-            timeIntervalRef.current = null;
-        }
-    }, []);
-
     // ============ MOUNT/UNMOUNT ============
     useEffect(() => {
         mountedRef.current = true;
         return () => {
             mountedRef.current = false;
-            stopTimeInterval();
-            // DON'T abort preload - it's global and should complete for other instances
+            // DON'T stop audio - it's shared and should keep playing
         };
-    }, [stopTimeInterval]);
+    }, []);
 
     // ============ GLOBAL STOP EVENT ============
     useEffect(() => {
         const handleStopAllMedia = (e) => {
             if (e.detail?.source === playerIdRef.current) return;
-            if (audioRef.current && !audioRef.current.paused) {
-                audioRef.current.pause();
-                stopTimeInterval();
+            const audio = getSharedAudio();
+            if (!audio.paused) {
+                audio.pause();
                 setIsPlaying(false);
             }
         };
         window.addEventListener('stopAllMedia', handleStopAllMedia);
         return () => window.removeEventListener('stopAllMedia', handleStopAllMedia);
-    }, [stopTimeInterval]);
+    }, []);
 
     // ============ CHECK CACHE & PRELOAD ON MOUNT ============
     useEffect(() => {
@@ -349,7 +434,9 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
     // ============ PLAY AUDIO ============
     const playAudio = useCallback(async () => {
         const cached = audioCache.get(commentary);
-        if (!audioRef.current || !cached?.audioUrl) {
+        const audio = getSharedAudio();
+
+        if (!cached?.audioUrl) {
             console.log('[AudioPlayer] No audio URL available');
             return false;
         }
@@ -357,28 +444,30 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
         try {
             window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
 
-            // Use the range-based URL - browser will handle range requests automatically
-            audioRef.current.src = cached.audioUrl;
+            // Only change source if different commentary
+            if (sharedAudioCommentary !== commentary) {
+                audio.src = cached.audioUrl;
+                sharedAudioCommentary = commentary;
+                console.log('[AudioPlayer] Loaded new audio source');
+            }
 
             // Set duration immediately (we got it from /prepare)
             if (cached.duration) {
                 setDuration(cached.duration);
             }
 
-            await audioRef.current.play();
-
-            startTimeInterval();
+            await audio.play();
             setIsPlaying(true);
             setError(null);
 
-            console.log('[AudioPlayer] Playback started with range-based URL');
+            console.log('[AudioPlayer] Playback started with shared audio element');
             return true;
         } catch (err) {
             console.error('[AudioPlayer] Play error:', err);
             setError(err.name === 'NotAllowedError' ? 'Tap to play' : 'Playback failed');
             return false;
         }
-    }, [commentary, startTimeInterval]);
+    }, [commentary]);
 
     // ============ HANDLE PLAY BUTTON ============
     const handlePlay = useCallback(async () => {
@@ -387,12 +476,18 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
             return;
         }
 
-        // If playing, pause
-        if (isPlaying && audioRef.current) {
-            audioRef.current.pause();
-            stopTimeInterval();
+        const audio = getSharedAudio();
+
+        // If this commentary is playing, pause it
+        if (sharedAudioCommentary === commentary && !audio.paused) {
+            audio.pause();
             setIsPlaying(false);
             return;
+        }
+
+        // If a different commentary is playing, stop it first
+        if (sharedAudioCommentary !== commentary && !audio.paused) {
+            audio.pause();
         }
 
         // Check cache
@@ -442,49 +537,51 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                 await playAudio();
             }
         }
-    }, [commentary, title, isPlaying, preloadStatus, playAudio, stopTimeInterval]);
+    }, [commentary, title, isPlaying, preloadStatus, playAudio]);
 
     // ============ HANDLE SEEK ============
     const handleSeek = useCallback((e) => {
         const newTime = parseFloat(e.target.value);
-        if (audioRef.current) {
-            audioRef.current.currentTime = newTime;
+        const audio = getSharedAudio();
+        if (sharedAudioCommentary === commentary) {
+            audio.currentTime = newTime;
             setCurrentTime(newTime);
         }
-    }, []);
+    }, [commentary]);
 
     // ============ JUMP TO SECTION ============
     const jumpToSection = useCallback((sectionIndex) => {
-        if (!audioRef.current || !sectionTimestamps[sectionIndex]) return;
+        if (!sectionTimestamps[sectionIndex]) return;
 
+        const audio = getSharedAudio();
         const targetTime = sectionTimestamps[sectionIndex].start;
-        audioRef.current.currentTime = targetTime;
-        setCurrentTime(targetTime);
-        setCurrentSection(sectionIndex);
-        onSectionChangeRef.current?.(sectionIndex);
 
-        if (audioRef.current.paused) {
-            playAudio();
+        if (sharedAudioCommentary === commentary) {
+            audio.currentTime = targetTime;
+            setCurrentTime(targetTime);
+            setCurrentSection(sectionIndex);
+            onSectionChangeRef.current?.(sectionIndex);
+
+            if (audio.paused) {
+                playAudio();
+            }
+        } else {
+            // Load this commentary first, then seek
+            playAudio().then(() => {
+                audio.currentTime = targetTime;
+                setCurrentTime(targetTime);
+                setCurrentSection(sectionIndex);
+                onSectionChangeRef.current?.(sectionIndex);
+            });
         }
-    }, [sectionTimestamps, playAudio]);
+    }, [commentary, sectionTimestamps, playAudio]);
 
     // ============ TOGGLE MUTE ============
     const toggleMute = useCallback(() => {
-        if (audioRef.current) {
-            audioRef.current.muted = !isMuted;
-            setIsMuted(!isMuted);
-        }
+        const audio = getSharedAudio();
+        audio.muted = !isMuted;
+        setIsMuted(!isMuted);
     }, [isMuted]);
-
-    // ============ HANDLE ENDED ============
-    const handleEnded = useCallback(() => {
-        stopTimeInterval();
-        setIsPlaying(false);
-        setCurrentSection(0);
-        setCurrentTime(0);
-        onSectionChangeRef.current?.(-1);
-        onProgressUpdateRef.current?.({ sectionIndex: -1, sectionProgress: 0, isPlaying: false });
-    }, [stopTimeInterval]);
 
     // ============ UPDATE SECTION & PROGRESS ============
     useEffect(() => {
@@ -715,45 +812,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                     </div>
                 )}
 
-                {/* Hidden Audio Element */}
-                <audio
-                    ref={audioRef}
-                    onEnded={handleEnded}
-                    onPlay={() => setIsPlaying(true)}
-                    onPause={() => {
-                        if (!audioRef.current?.ended) {
-                            setIsPlaying(false);
-                        }
-                    }}
-                    onLoadedMetadata={() => {
-                        // Get real duration from audio element (browser got it from Content-Length)
-                        if (audioRef.current?.duration && isFinite(audioRef.current.duration)) {
-                            console.log('[AudioPlayer] Real duration from metadata:', audioRef.current.duration);
-                            setDuration(audioRef.current.duration);
-                            // Update cache too
-                            const cached = audioCache.get(commentary);
-                            if (cached) {
-                                cached.duration = audioRef.current.duration;
-                            }
-                        }
-                    }}
-                    onProgress={() => {
-                        // Track buffer progress
-                        if (audioRef.current?.buffered?.length > 0 && audioRef.current?.duration) {
-                            const bufferedEnd = audioRef.current.buffered.end(audioRef.current.buffered.length - 1);
-                            const bufferPercent = (bufferedEnd / audioRef.current.duration) * 100;
-                            setBufferProgress(bufferPercent);
-                        }
-                    }}
-                    onError={(e) => {
-                        console.error('[AudioPlayer] Audio error:', e);
-                        setIsPlaying(false);
-                        stopTimeInterval();
-                        setError('Audio error');
-                    }}
-                    preload="auto"
-                    className="hidden"
-                />
+                {/* Audio element is now shared globally - no local element needed */}
             </div>
         </div>
     );
