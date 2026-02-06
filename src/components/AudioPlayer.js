@@ -642,7 +642,9 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
             <div
                 className={`rounded-xl p-2 sm:p-3 transition-all duration-300 ease-out
                     sm:bg-gradient-to-br sm:from-gray-900 sm:via-gray-800 sm:to-gray-900 sm:shadow-xl sm:border sm:border-gray-700
-                    ${showGlassEffect ? 'bg-black/60 backdrop-blur-xl shadow-2xl border border-white/20' : 'max-sm:bg-transparent max-sm:border-0 max-sm:shadow-none'}`}
+                    ${showGlassEffect
+                        ? 'max-sm:backdrop-blur-md max-sm:bg-white/15 max-sm:border max-sm:border-white/25 max-sm:shadow-lg'
+                        : 'max-sm:bg-transparent max-sm:backdrop-blur-0 max-sm:border-0 max-sm:shadow-none'}`}
                 onTouchStart={() => setIsHovered(true)}
                 onTouchEnd={() => setTimeout(() => setIsHovered(false), 3000)}
                 onMouseEnter={() => setIsHovered(true)}

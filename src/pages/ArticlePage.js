@@ -475,18 +475,16 @@ const ArticlePage = () => {
               <h1 className="text-lg font-bold text-white leading-tight font-serif line-clamp-2 drop-shadow-lg">{article.title}</h1>
             </div>
 
-            {/* Audio Player Overlay - Glassmorphic transparent design */}
+            {/* Audio Player Overlay - AudioPlayer handles its own glass effect on touch */}
             <div className="absolute bottom-0 left-0 right-0 p-3">
-              <div className="backdrop-blur-md bg-white/10 rounded-xl border border-white/20 shadow-lg">
-                {article.aiCommentary && (
-                  <AudioPlayer
-                    commentary={article.aiCommentary}
-                    title={article.title}
-                    onSectionChange={handleSectionChange}
-                    onProgressUpdate={handleProgressUpdate}
-                  />
-                )}
-              </div>
+              {article.aiCommentary && (
+                <AudioPlayer
+                  commentary={article.aiCommentary}
+                  title={article.title}
+                  onSectionChange={handleSectionChange}
+                  onProgressUpdate={handleProgressUpdate}
+                />
+              )}
             </div>
 
             {/* Exit fullscreen button - exits immersive mode */}
@@ -740,17 +738,15 @@ const ArticlePage = () => {
               <h1 className="text-xl font-bold text-white leading-tight font-serif drop-shadow-lg">{article.title}</h1>
             </div>
 
-            {/* Audio Player - Inside image with glassmorphic overlay */}
+            {/* Audio Player - AudioPlayer handles its own glass effect on touch */}
             {article.aiCommentary && (
               <div className="absolute bottom-0 left-0 right-0 p-3">
-                <div className="backdrop-blur-md bg-white/10 rounded-xl border border-white/20 shadow-lg">
-                  <AudioPlayer
-                    commentary={article.aiCommentary}
-                    title={article.title}
-                    onSectionChange={handleSectionChange}
-                    onProgressUpdate={handleProgressUpdate}
-                  />
-                </div>
+                <AudioPlayer
+                  commentary={article.aiCommentary}
+                  title={article.title}
+                  onSectionChange={handleSectionChange}
+                  onProgressUpdate={handleProgressUpdate}
+                />
               </div>
             )}
           </div>
