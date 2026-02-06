@@ -4,6 +4,103 @@ import { Play, Pause, Loader, Volume2, VolumeX } from 'lucide-react';
 // Use direct backend URL for TTS
 const API_BASE_URL = 'https://webstorybackend.onrender.com';
 
+// ============ SHARED AUDIO CACHE (MSE Approach) ============
+// This cache stores audio metadata and loading state
+const audioCache = new Map(); // commentary -> { audioId, size, duration, status, bufferProgress, listeners }
+
+/**
+ * Global preload function - YouTube-style approach:
+ * 1. Call /prepare to generate audio and get metadata (audioId, size, duration)
+ * 2. Fetch initial chunk (first 20KB) for instant playback
+ * 3. Background load the rest
+ */
+const preloadAudioGlobal = async (commentaryText, audioTitle) => {
+    // Check if already cached or loading
+    const existing = audioCache.get(commentaryText);
+    if (existing && existing.status !== 'error') {
+        console.log('[AudioPlayer] Already in cache, status:', existing.status);
+        return existing;
+    }
+
+    // Create cache entry with estimated duration
+    const wordCount = commentaryText.split(/\s+/).length;
+    const estimatedDuration = (wordCount / 130) * 60;
+
+    const cacheEntry = {
+        status: 'loading',
+        bufferProgress: 0,
+        duration: estimatedDuration,
+        audioId: null,
+        size: 0,
+        audioUrl: null, // URL for range-based playback
+        listeners: new Set()
+    };
+
+    audioCache.set(commentaryText, cacheEntry);
+    console.log('[AudioPlayer] Starting MSE preload...');
+
+    try {
+        // Step 1: Call /prepare to generate audio and get metadata
+        console.log('[AudioPlayer] Calling /prepare...');
+        const prepareResponse = await fetch(`${API_BASE_URL}/api/tts/prepare`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: commentaryText, title: audioTitle })
+        });
+
+        if (!prepareResponse.ok) {
+            throw new Error(`Prepare failed: ${prepareResponse.status}`);
+        }
+
+        const metadata = await prepareResponse.json();
+        console.log('[AudioPlayer] Metadata received:', metadata);
+
+        // Update cache with real metadata
+        cacheEntry.audioId = metadata.audioId;
+        cacheEntry.size = metadata.size;
+        cacheEntry.duration = metadata.duration || estimatedDuration;
+        cacheEntry.audioUrl = `${API_BASE_URL}/api/tts/audio/${metadata.audioId}`;
+
+        // Notify listeners of duration update
+        cacheEntry.listeners.forEach(cb => cb({ ...cacheEntry, status: 'loading' }));
+
+        // Step 2: Fetch initial chunk (first 20KB) to verify audio is accessible
+        console.log('[AudioPlayer] Fetching initial chunk...');
+        const initialChunkResponse = await fetch(cacheEntry.audioUrl, {
+            headers: { 'Range': 'bytes=0-20000' }
+        });
+
+        if (!initialChunkResponse.ok && initialChunkResponse.status !== 206) {
+            throw new Error(`Initial chunk failed: ${initialChunkResponse.status}`);
+        }
+
+        const initialChunk = await initialChunkResponse.arrayBuffer();
+        console.log('[AudioPlayer] Initial chunk received:', initialChunk.byteLength, 'bytes');
+
+        // Calculate initial buffer progress
+        cacheEntry.bufferProgress = Math.min((initialChunk.byteLength / cacheEntry.size) * 100, 100);
+
+        // Mark as ready - we have enough to start playing
+        cacheEntry.status = 'ready';
+
+        // Notify all listeners
+        cacheEntry.listeners.forEach(cb => cb(cacheEntry));
+        console.log('[AudioPlayer] Preload complete! Audio ready for streaming playback.');
+
+        return cacheEntry;
+
+    } catch (err) {
+        console.error('[AudioPlayer] Preload error:', err);
+        cacheEntry.status = 'error';
+        cacheEntry.error = err.message;
+
+        // Notify listeners of error
+        cacheEntry.listeners.forEach(cb => cb(cacheEntry));
+
+        return cacheEntry;
+    }
+};
+
 // Parse commentary into sections for synced highlighting
 const parseCommentaryIntoSections = (text) => {
     if (!text) return [];
@@ -49,7 +146,7 @@ const formatTime = (seconds) => {
 
 const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) => {
     const audioRef = useRef(null);
-    const playerIdRef = useRef(`audio-player-${Date.now()}`);
+    const playerIdRef = useRef(`audio-player-${Date.now()}-${Math.random()}`);
 
     // Callback refs
     const onSectionChangeRef = useRef(onSectionChange);
@@ -75,14 +172,8 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
     const [isHovered, setIsHovered] = useState(false);
 
     // ============ REFS ============
-    const preloadChunksRef = useRef([]);
-    const preloadBlobRef = useRef(null);
-    const preloadUrlRef = useRef(null);
-    const totalBytesRef = useRef(0);
-    const abortControllerRef = useRef(null);
     const timeIntervalRef = useRef(null);
-    const isPreloadingRef = useRef(false);
-    const playWhenReadyRef = useRef(false); // Flag to auto-play when preload ready
+    const mountedRef = useRef(true);
 
     const sections = useMemo(() => parseCommentaryIntoSections(commentary), [commentary]);
 
@@ -121,14 +212,14 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
         const sectionsWeight = sectionsDetails.reduce((sum, s) => sum + s.totalWeight, 0);
         const totalWeight = introWeight + sectionsWeight + outroWeight;
         const timePerWeight = duration / totalWeight;
-        const introDuration = introWeight * timePerWeight;
+        const introDur = introWeight * timePerWeight;
 
         let cumulativeWeight = 0;
         return sections.map((section, idx) => {
             const { headerWeight, totalWeight: sectionTotalWeight } = sectionsDetails[idx];
-            const start = introDuration + (cumulativeWeight * timePerWeight);
+            const start = introDur + (cumulativeWeight * timePerWeight);
             cumulativeWeight += sectionTotalWeight;
-            const end = introDuration + (cumulativeWeight * timePerWeight);
+            const end = introDur + (cumulativeWeight * timePerWeight);
             const contentStart = start + (headerWeight * timePerWeight);
             return { start, end, index: idx, contentStart };
         });
@@ -155,21 +246,17 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
         }
 
         timeIntervalRef.current = setInterval(() => {
-            if (audioRef.current && !audioRef.current.paused) {
+            if (audioRef.current && !audioRef.current.paused && mountedRef.current) {
                 const time = audioRef.current.currentTime;
                 const dur = audioRef.current.duration;
 
                 setCurrentTime(time);
 
-                // Update duration if we get a valid one from audio element
                 if (dur && isFinite(dur) && dur > 0) {
-                    setDuration(prev => {
-                        if (Math.abs(dur - prev) > 0.5) return dur;
-                        return prev;
-                    });
+                    setDuration(prev => Math.abs(dur - prev) > 0.5 ? dur : prev);
                 }
             }
-        }, 50); // 20fps for smooth updates
+        }, 50);
     }, []);
 
     const stopTimeInterval = useCallback(() => {
@@ -179,16 +266,13 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
         }
     }, []);
 
-    // ============ CLEANUP ============
+    // ============ MOUNT/UNMOUNT ============
     useEffect(() => {
+        mountedRef.current = true;
         return () => {
+            mountedRef.current = false;
             stopTimeInterval();
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-            }
-            if (preloadUrlRef.current) {
-                URL.revokeObjectURL(preloadUrlRef.current);
-            }
+            // DON'T abort preload - it's global and should complete for other instances
         };
     }, [stopTimeInterval]);
 
@@ -206,238 +290,98 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
         return () => window.removeEventListener('stopAllMedia', handleStopAllMedia);
     }, [stopTimeInterval]);
 
-    // ============ PRELOAD AUDIO ON MOUNT ============
+    // ============ CHECK CACHE & PRELOAD ON MOUNT ============
     useEffect(() => {
-        if (!commentary || isPreloadingRef.current) return;
-
-        isPreloadingRef.current = true;
-        preloadAudio();
-
-        return () => {
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-            }
-        };
-    }, [commentary]);
-
-    // ============ RESET ON COMMENTARY CHANGE ============
-    useEffect(() => {
-        // Reset all state when commentary changes
-        setIsPlaying(false);
-        setCurrentTime(0);
-        setDuration(0);
-        setCurrentSection(0);
-        setError(null);
-        setPreloadStatus('idle');
-        setBufferProgress(0);
-        stopTimeInterval();
-
-        // Reset refs
-        preloadChunksRef.current = [];
-        preloadBlobRef.current = null;
-        if (preloadUrlRef.current) {
-            URL.revokeObjectURL(preloadUrlRef.current);
-            preloadUrlRef.current = null;
-        }
-        totalBytesRef.current = 0;
-        isPreloadingRef.current = false;
-        playWhenReadyRef.current = false;
-
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-            abortControllerRef.current = null;
-        }
-    }, [commentary, stopTimeInterval]);
-
-    // ============ PRELOAD FUNCTION ============
-    const preloadAudio = async () => {
         if (!commentary) return;
 
-        console.log('[AudioPlayer] Starting background preload...');
+        // Callback for when preload completes
+        const onCacheUpdate = (entry) => {
+            if (!mountedRef.current) return;
+            setPreloadStatus(entry.status);
+            setBufferProgress(entry.bufferProgress || 0);
+            if (entry.duration) setDuration(entry.duration);
+        };
+
+        // Check if already in cache
+        const cached = audioCache.get(commentary);
+        if (cached) {
+            console.log('[AudioPlayer] Found in cache, status:', cached.status);
+            setPreloadStatus(cached.status);
+            setBufferProgress(cached.bufferProgress || 100);
+            if (cached.duration) setDuration(cached.duration);
+
+            // If still loading, subscribe to updates
+            if (cached.status === 'loading') {
+                cached.listeners.add(onCacheUpdate);
+                return () => cached.listeners.delete(onCacheUpdate);
+            }
+            return;
+        }
+
+        // Start global preload and subscribe
         setPreloadStatus('loading');
-        setError(null);
-
-        // Set estimated duration immediately for UI
-        const wordCount = commentary.split(/\s+/).length;
-        const estimatedDuration = (wordCount / 130) * 60; // ~130 words/min
-        setDuration(estimatedDuration);
-
-        abortControllerRef.current = new AbortController();
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/tts/speak`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: commentary, title }),
-                signal: abortControllerRef.current.signal
-            });
-
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
+        preloadAudioGlobal(commentary, title).then(entry => {
+            if (entry && mountedRef.current) {
+                onCacheUpdate(entry);
             }
-
-            const contentLength = response.headers.get('content-length');
-            const estimatedSize = contentLength ? parseInt(contentLength, 10) : (wordCount * 1000); // Rough estimate
-
-            const reader = response.body.getReader();
-            preloadChunksRef.current = [];
-            totalBytesRef.current = 0;
-            let initialBlobCreated = false;
-
-            while (true) {
-                const { done, value } = await reader.read();
-
-                if (done) {
-                    console.log('[AudioPlayer] Preload complete, total bytes:', totalBytesRef.current);
-                    break;
-                }
-
-                preloadChunksRef.current.push(value);
-                totalBytesRef.current += value.length;
-
-                // Update buffer progress
-                const progress = Math.min((totalBytesRef.current / estimatedSize) * 100, 99);
-                setBufferProgress(progress);
-
-                // Create initial blob after ~30KB to get real duration
-                if (!initialBlobCreated && totalBytesRef.current > 30000) {
-                    initialBlobCreated = true;
-                    createInitialBlob();
-                }
-            }
-
-            // Create final blob with all data
-            createFinalBlob();
-
-        } catch (err) {
-            if (err.name === 'AbortError') {
-                console.log('[AudioPlayer] Preload aborted');
-                return;
-            }
-            console.error('[AudioPlayer] Preload error:', err);
-            setError('Failed to load audio');
-            setPreloadStatus('error');
-        }
-    };
-
-    // ============ CREATE INITIAL BLOB (for duration) ============
-    const createInitialBlob = () => {
-        console.log('[AudioPlayer] Creating initial blob for duration detection...');
-
-        const blob = new Blob(preloadChunksRef.current, { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(blob);
-
-        // Store for potential early playback
-        preloadBlobRef.current = blob;
-        if (preloadUrlRef.current) {
-            URL.revokeObjectURL(preloadUrlRef.current);
-        }
-        preloadUrlRef.current = url;
-
-        // Get real duration using temp audio element
-        const tempAudio = new Audio();
-        tempAudio.preload = 'metadata';
-
-        tempAudio.addEventListener('loadedmetadata', () => {
-            const realDur = tempAudio.duration;
-            if (realDur && isFinite(realDur) && realDur > 0) {
-                console.log('[AudioPlayer] Got real duration:', realDur);
-                setDuration(realDur);
-            }
-            // Clean up temp audio
-            tempAudio.src = '';
         });
 
-        tempAudio.addEventListener('error', () => {
-            console.log('[AudioPlayer] Could not get duration from initial blob');
-        });
-
-        tempAudio.src = url;
-
-        // Mark as partially ready - can play now
-        setPreloadStatus('ready');
-
-        // If user was waiting to play, start now
-        if (playWhenReadyRef.current) {
-            playWhenReadyRef.current = false;
-            playAudio();
-        }
-    };
-
-    // ============ CREATE FINAL BLOB ============
-    const createFinalBlob = () => {
-        console.log('[AudioPlayer] Creating final blob...');
-
-        const blob = new Blob(preloadChunksRef.current, { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(blob);
-
-        // Get real duration from final blob
-        const tempAudio = new Audio();
-        tempAudio.preload = 'metadata';
-
-        tempAudio.addEventListener('loadedmetadata', () => {
-            const realDur = tempAudio.duration;
-            if (realDur && isFinite(realDur) && realDur > 0) {
-                console.log('[AudioPlayer] Final duration:', realDur);
-                setDuration(realDur);
+        // Subscribe to updates
+        const checkAndSubscribe = () => {
+            const entry = audioCache.get(commentary);
+            if (entry) {
+                entry.listeners.add(onCacheUpdate);
             }
-            tempAudio.src = '';
-        });
+        };
 
-        tempAudio.src = url;
+        // Small delay to ensure entry is created
+        setTimeout(checkAndSubscribe, 10);
 
-        // Update blob reference
-        const oldUrl = preloadUrlRef.current;
-        preloadBlobRef.current = blob;
-        preloadUrlRef.current = url;
+        return () => {
+            const entry = audioCache.get(commentary);
+            if (entry?.listeners) {
+                entry.listeners.delete(onCacheUpdate);
+            }
+        };
+    }, [commentary, title]);
 
-        // If currently playing, seamlessly switch to full audio
-        if (audioRef.current && !audioRef.current.paused) {
-            const currentPos = audioRef.current.currentTime;
-            audioRef.current.src = url;
-            audioRef.current.currentTime = currentPos;
-            audioRef.current.play().catch(() => {});
-        }
-
-        // Clean up old URL
-        if (oldUrl && oldUrl !== url) {
-            URL.revokeObjectURL(oldUrl);
-        }
-
-        setBufferProgress(100);
-        setPreloadStatus('ready');
-    };
 
     // ============ PLAY AUDIO ============
-    const playAudio = async () => {
-        if (!audioRef.current || !preloadUrlRef.current) return;
+    const playAudio = useCallback(async () => {
+        const cached = audioCache.get(commentary);
+        if (!audioRef.current || !cached?.audioUrl) {
+            console.log('[AudioPlayer] No audio URL available');
+            return false;
+        }
 
         try {
             window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: playerIdRef.current } }));
 
-            // Set source if not already set
-            if (audioRef.current.src !== preloadUrlRef.current) {
-                audioRef.current.src = preloadUrlRef.current;
+            // Use the range-based URL - browser will handle range requests automatically
+            audioRef.current.src = cached.audioUrl;
+
+            // Set duration immediately (we got it from /prepare)
+            if (cached.duration) {
+                setDuration(cached.duration);
             }
 
             await audioRef.current.play();
-            startTimeInterval(); // Start IMMEDIATELY after play succeeds
+
+            startTimeInterval();
             setIsPlaying(true);
             setError(null);
 
-            console.log('[AudioPlayer] Playback started');
+            console.log('[AudioPlayer] Playback started with range-based URL');
+            return true;
         } catch (err) {
             console.error('[AudioPlayer] Play error:', err);
-            if (err.name === 'NotAllowedError') {
-                setError('Tap to play');
-            } else {
-                setError('Playback failed');
-            }
+            setError(err.name === 'NotAllowedError' ? 'Tap to play' : 'Playback failed');
+            return false;
         }
-    };
+    }, [commentary, startTimeInterval]);
 
     // ============ HANDLE PLAY BUTTON ============
-    const handlePlay = async () => {
+    const handlePlay = useCallback(async () => {
         if (!commentary) {
             setError('No audio available');
             return;
@@ -451,31 +395,59 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
             return;
         }
 
-        // If preload ready, play immediately
-        if (preloadStatus === 'ready' && preloadUrlRef.current) {
+        // Check cache
+        const cached = audioCache.get(commentary);
+
+        // If ready, play immediately
+        if (cached?.status === 'ready' && cached?.audioUrl) {
             await playAudio();
             return;
         }
 
-        // If still loading, set flag to play when ready
-        if (preloadStatus === 'loading') {
-            console.log('[AudioPlayer] Waiting for preload...');
-            playWhenReadyRef.current = true;
+        // If loading, wait and retry
+        if (cached?.status === 'loading' || preloadStatus === 'loading') {
+            console.log('[AudioPlayer] Waiting for preload to finish...');
+
+            // Subscribe to be notified when ready
+            const playWhenReady = (entry) => {
+                if (entry?.status === 'ready' && entry?.audioUrl && mountedRef.current) {
+                    cached?.listeners?.delete(playWhenReady);
+                    playAudio();
+                }
+            };
+
+            if (cached?.listeners) {
+                cached.listeners.add(playWhenReady);
+            }
+
+            // Also poll as backup
+            const checkReady = setInterval(async () => {
+                const c = audioCache.get(commentary);
+                if (c?.status === 'ready' && c?.audioUrl && mountedRef.current) {
+                    clearInterval(checkReady);
+                    await playAudio();
+                }
+            }, 500);
+
+            // Timeout after 60 seconds
+            setTimeout(() => clearInterval(checkReady), 60000);
             return;
         }
 
-        // If idle or error, start preload and play when ready
-        if (preloadStatus === 'idle' || preloadStatus === 'error') {
-            playWhenReadyRef.current = true;
-            isPreloadingRef.current = true;
-            await preloadAudio();
+        // If idle or error, start preload
+        if (!cached || cached.status === 'error') {
+            setPreloadStatus('loading');
+            const entry = await preloadAudioGlobal(commentary, title);
+            if (entry?.status === 'ready' && entry?.audioUrl && mountedRef.current) {
+                await playAudio();
+            }
         }
-    };
+    }, [commentary, title, isPlaying, preloadStatus, playAudio, stopTimeInterval]);
 
     // ============ HANDLE SEEK ============
     const handleSeek = useCallback((e) => {
         const newTime = parseFloat(e.target.value);
-        if (audioRef.current && preloadUrlRef.current) {
+        if (audioRef.current) {
             audioRef.current.currentTime = newTime;
             setCurrentTime(newTime);
         }
@@ -483,7 +455,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
 
     // ============ JUMP TO SECTION ============
     const jumpToSection = useCallback((sectionIndex) => {
-        if (!audioRef.current || !sectionTimestamps[sectionIndex] || !preloadUrlRef.current) return;
+        if (!audioRef.current || !sectionTimestamps[sectionIndex]) return;
 
         const targetTime = sectionTimestamps[sectionIndex].start;
         audioRef.current.currentTime = targetTime;
@@ -494,25 +466,25 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
         if (audioRef.current.paused) {
             playAudio();
         }
-    }, [sectionTimestamps]);
+    }, [sectionTimestamps, playAudio]);
 
     // ============ TOGGLE MUTE ============
-    const toggleMute = () => {
+    const toggleMute = useCallback(() => {
         if (audioRef.current) {
             audioRef.current.muted = !isMuted;
             setIsMuted(!isMuted);
         }
-    };
+    }, [isMuted]);
 
     // ============ HANDLE ENDED ============
-    const handleEnded = () => {
+    const handleEnded = useCallback(() => {
         stopTimeInterval();
         setIsPlaying(false);
         setCurrentSection(0);
         setCurrentTime(0);
         onSectionChangeRef.current?.(-1);
         onProgressUpdateRef.current?.({ sectionIndex: -1, sectionProgress: 0, isPlaying: false });
-    };
+    }, [stopTimeInterval]);
 
     // ============ UPDATE SECTION & PROGRESS ============
     useEffect(() => {
@@ -567,7 +539,6 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
 
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
     const showGlassEffect = isHovered;
-    const isLoading = preloadStatus === 'loading' && playWhenReadyRef.current;
 
     return (
         <div className="w-full">
@@ -646,20 +617,17 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                     {/* Play Button */}
                     <button
                         onClick={handlePlay}
-                        disabled={isLoading}
                         className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all duration-300 flex-shrink-0 touch-manipulation ${
-                            isLoading
-                                ? 'bg-gray-600 cursor-wait'
-                                : isPlaying
-                                    ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30'
-                                    : preloadStatus === 'ready'
-                                        ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-lg shadow-green-500/30'
-                                        : preloadStatus === 'loading'
-                                            ? 'bg-gradient-to-r from-yellow-600 to-orange-500 text-white shadow-lg shadow-orange-500/30'
-                                            : 'bg-gradient-to-r from-gray-600 to-gray-500 text-white'
+                            isPlaying
+                                ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30'
+                                : preloadStatus === 'ready'
+                                    ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-lg shadow-green-500/30'
+                                    : preloadStatus === 'loading'
+                                        ? 'bg-gradient-to-r from-yellow-600 to-orange-500 text-white shadow-lg shadow-orange-500/30 animate-pulse'
+                                        : 'bg-gradient-to-r from-gray-600 to-gray-500 text-white'
                         }`}
                     >
-                        {isLoading ? (
+                        {preloadStatus === 'loading' && !isPlaying ? (
                             <Loader size={18} className="animate-spin" />
                         ) : isPlaying ? (
                             <Pause size={18} fill="currentColor" />
@@ -718,7 +686,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                                 {formatTime(currentTime)}
                             </span>
                             <span className={`text-[10px] sm:text-xs font-mono tabular-nums transition-all duration-300 ${preloadStatus === 'loading' ? 'text-yellow-400' : ''} ${showGlassEffect ? 'text-white/50' : 'sm:text-gray-500 max-sm:text-white/80 max-sm:[text-shadow:_0_2px_8px_rgb(0_0_0_/_90%)]'}`}>
-                                {preloadStatus === 'loading' ? `~${formatTime(duration)}` : formatTime(duration)}
+                                {preloadStatus === 'loading' && bufferProgress < 100 ? `~${formatTime(duration)}` : formatTime(duration)}
                             </span>
                         </div>
                     </div>
@@ -732,18 +700,17 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                     </button>
                 </div>
 
-                {/* Status Message */}
+                {/* Status Messages */}
                 {error && (
                     <div className="mt-1.5 sm:mt-2 text-center">
                         <span className="text-orange-400 text-[9px] sm:text-[10px]">{error}</span>
                     </div>
                 )}
 
-                {/* Preload Status Indicator */}
-                {preloadStatus === 'loading' && !isPlaying && (
+                {preloadStatus === 'loading' && bufferProgress < 100 && (
                     <div className="mt-1.5 text-center">
                         <span className="text-blue-400 text-[9px] sm:text-[10px]">
-                            Loading {Math.round(bufferProgress)}%...
+                            Loading {Math.round(bufferProgress)}%
                         </span>
                     </div>
                 )}
@@ -756,6 +723,26 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                     onPause={() => {
                         if (!audioRef.current?.ended) {
                             setIsPlaying(false);
+                        }
+                    }}
+                    onLoadedMetadata={() => {
+                        // Get real duration from audio element (browser got it from Content-Length)
+                        if (audioRef.current?.duration && isFinite(audioRef.current.duration)) {
+                            console.log('[AudioPlayer] Real duration from metadata:', audioRef.current.duration);
+                            setDuration(audioRef.current.duration);
+                            // Update cache too
+                            const cached = audioCache.get(commentary);
+                            if (cached) {
+                                cached.duration = audioRef.current.duration;
+                            }
+                        }
+                    }}
+                    onProgress={() => {
+                        // Track buffer progress
+                        if (audioRef.current?.buffered?.length > 0 && audioRef.current?.duration) {
+                            const bufferedEnd = audioRef.current.buffered.end(audioRef.current.buffered.length - 1);
+                            const bufferPercent = (bufferedEnd / audioRef.current.duration) * 100;
+                            setBufferProgress(bufferPercent);
                         }
                     }}
                     onError={(e) => {
