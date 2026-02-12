@@ -335,6 +335,83 @@ const ArticlePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Inject JSON-LD Schema for SEO (NewsArticle + Speakable)
+  useEffect(() => {
+    if (!article) return;
+
+    const baseUrl = 'https://forexyy.com';
+    const slug = article.url ?
+      article.url.split('/').pop().replace(/\.html?$/, '') :
+      article.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+    const articleUrl = `${baseUrl}/article/${encodeURIComponent(slug || id)}`;
+    const publishDate = article.publishedDate || article.createdAt || new Date().toISOString();
+
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": article.title,
+      "description": article.abstract || article.title,
+      "url": articleUrl,
+      "datePublished": publishDate,
+      "dateModified": article.updatedAt || publishDate,
+      "author": {
+        "@type": "Organization",
+        "name": article.byline || "Forexyy News",
+        "url": baseUrl
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Forexyy",
+        "url": baseUrl,
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${baseUrl}/logo.png`
+        }
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": articleUrl
+      },
+      "articleSection": article.section || "News",
+      "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": [".article-title", ".article-summary", ".ai-commentary"]
+      }
+    };
+
+    if (article.imageUrl) {
+      schema.image = {
+        "@type": "ImageObject",
+        "url": article.imageUrl,
+        "width": 1200,
+        "height": 630
+      };
+    }
+
+    if (article.aiCommentary) {
+      schema.articleBody = article.aiCommentary.substring(0, 5000);
+    }
+
+    // Inject or update the JSON-LD script
+    let scriptTag = document.querySelector('script[data-schema="article"]');
+    if (!scriptTag) {
+      scriptTag = document.createElement('script');
+      scriptTag.type = 'application/ld+json';
+      scriptTag.setAttribute('data-schema', 'article');
+      document.head.appendChild(scriptTag);
+    }
+    scriptTag.textContent = JSON.stringify(schema);
+
+    // Cleanup on unmount
+    return () => {
+      const existingScript = document.querySelector('script[data-schema="article"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+    };
+  }, [article, id]);
+
   // Typewriter effect for AI commentary
   useEffect(() => {
     if (!article?.aiCommentary) {
