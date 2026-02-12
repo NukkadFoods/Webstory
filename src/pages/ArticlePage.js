@@ -1536,8 +1536,9 @@ const ArticlePage = () => {
             <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x -mx-3 px-3 sm:mx-0 sm:px-0">
               {relatedArticles.map((relArticle, index) => (
                 <Link
-                  key={`related-${relArticle.id}-${index}`}
-                  to={`/article/${encodeURIComponent(relArticle.url || relArticle.id)}`}
+                  key={`related-${relArticle._id || relArticle.id}-${index}`}
+                  to={`/article/${relArticle._id || (relArticle.id?.match?.(/^[a-f0-9]{24}$/i) ? relArticle.id :
+                    (relArticle.title ? relArticle.title.toLowerCase().replace(/['']/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').substring(0, 80) + '-' + (relArticle.url || relArticle.title).split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0).toString(36).replace('-', '').substring(0, 6) : 'article'))}`}
                   className="flex-none w-48 sm:w-56 md:w-64 group snap-start"
                 >
                   <div className="bg-white rounded-lg overflow-hidden border border-gray-100 hover:border-blue-200 active:border-blue-300 hover:shadow-lg transition-all h-full touch-manipulation">

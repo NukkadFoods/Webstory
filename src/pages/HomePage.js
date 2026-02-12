@@ -83,12 +83,38 @@ const HomePage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Robust link generator
+  // Generate clean, SEO-friendly article link
   const getArticleLink = (article) => {
-    const id = article.uuid || article.id || article.url;
-    // Fallback if ID is missing
-    if (!id) return '#';
-    return `/article/${encodeURIComponent(id)}`;
+    // Priority 1: Use MongoDB _id
+    if (article._id) {
+      return `/article/${article._id}`;
+    }
+
+    // Priority 2: Use id if it's a valid MongoDB ObjectId
+    if (article.id && article.id.match?.(/^[a-f0-9]{24}$/i)) {
+      return `/article/${article.id}`;
+    }
+
+    // Priority 3: Create clean slug from title
+    if (article.title) {
+      const slug = article.title
+        .toLowerCase()
+        .replace(/['']/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .substring(0, 80);
+
+      const hash = (article.url || article.id || article.title)
+        .split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0)
+        .toString(36).replace('-', '').substring(0, 6);
+
+      return `/article/${slug}-${hash}`;
+    }
+
+    // Fallback
+    return '#';
   };
 
   // Safe Image Getter

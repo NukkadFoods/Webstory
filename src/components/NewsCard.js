@@ -19,22 +19,58 @@ const NewsCard = ({ article, id, title, abstract, byline, published_date, image,
     imageUrl: image
   };
 
-  // Generate a unique and consistent identifier for the article
+  // Generate a clean, SEO-friendly slug for the article
   const getArticleIdentifier = () => {
-    if (articleData.id && typeof articleData.id === 'string') {
-      return encodeURIComponent(articleData.id);
-    }
+    // Priority 1: Use MongoDB _id (most reliable)
     if (articleData._id && typeof articleData._id === 'string') {
-      return encodeURIComponent(articleData._id);
+      return articleData._id;
     }
+
+    // Priority 2: Use id if it's a MongoDB ObjectId (24 hex chars)
+    if (articleData.id && typeof articleData.id === 'string') {
+      if (articleData.id.match(/^[a-f0-9]{24}$/i)) {
+        return articleData.id;
+      }
+    }
+
+    // Priority 3: Create clean slug from title (SEO-friendly)
+    if (articleData.title && typeof articleData.title === 'string') {
+      const slug = articleData.title
+        .toLowerCase()
+        .replace(/['']/g, '')           // Remove apostrophes
+        .replace(/[^a-z0-9\s-]/g, '')   // Remove special chars
+        .replace(/\s+/g, '-')           // Replace spaces with hyphens
+        .replace(/-+/g, '-')            // Remove duplicate hyphens
+        .replace(/^-|-$/g, '')          // Trim hyphens from ends
+        .substring(0, 80);              // Limit length for URL
+
+      // Add a short hash from the URL or id for uniqueness
+      const hash = (articleData.url || articleData.id || articleData.title)
+        .split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0)
+        .toString(36).replace('-', '').substring(0, 6);
+
+      return `${slug}-${hash}`;
+    }
+
+    // Priority 4: Extract slug from URI
     if (articleData.uri && typeof articleData.uri === 'string') {
-      return encodeURIComponent(articleData.uri.split('/').pop());
+      const uriSlug = articleData.uri.split('/').pop();
+      if (uriSlug && !uriSlug.includes('http')) {
+        return encodeURIComponent(uriSlug);
+      }
     }
+
+    // Fallback: Generate from URL filename (not the full URL)
     if (articleData.url && typeof articleData.url === 'string') {
       const urlParts = articleData.url.split('/');
-      return encodeURIComponent(urlParts[urlParts.length - 1].replace('.html', ''));
+      const filename = urlParts[urlParts.length - 1]
+        .replace(/\.html?$/i, '')
+        .replace(/[^a-z0-9-]/gi, '-')
+        .toLowerCase();
+      return filename || 'article';
     }
-    return encodeURIComponent(articleData.title || 'unknown');
+
+    return 'article';
   };
 
   // Enhanced image detection with multiple fallbacks
