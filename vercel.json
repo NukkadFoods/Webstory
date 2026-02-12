@@ -13,6 +13,10 @@
       "destination": "https://webstorybackend.onrender.com/news-sitemap.xml"
     },
     {
+      "source": "/video-sitemap.xml",
+      "destination": "https://webstorybackend.onrender.com/video-sitemap.xml"
+    },
+    {
       "source": "/api/schema/:path*",
       "destination": "https://webstorybackend.onrender.com/api/schema/:path*"
     },
