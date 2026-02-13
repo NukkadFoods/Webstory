@@ -2,9 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getArticleById } from '../services/articleService';
 import { getWallStreetArticleByUrl } from '../services/wallStreetService';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faClock, faUser, faTag, faArrowLeft, faShare, faBookmark, faExclamationTriangle, faBolt, faChartLine, faRobot, faGlobeAmericas, faSearch, faPlay, faVolumeMute } from '@fortawesome/free-solid-svg-icons';
-import { faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
+import { Clock, User, Tag, ArrowLeft, Share2, Bookmark, AlertTriangle, Zap, TrendingUp, Bot, Globe, Search, Play, VolumeX, Twitter, Facebook } from 'lucide-react';
 import Header from '../components/Header';
 import FluidAd from '../components/FluidAd';
 
@@ -171,11 +169,11 @@ const ArticlePage = () => {
 
   // Categories for header navigation
   const categories = [
-    { id: 'home', name: 'Top Stories', icon: faBolt },
-    { id: 'business', name: 'Business', icon: faChartLine },
-    { id: 'technology', name: 'Tech', icon: faRobot },
-    { id: 'finance', name: 'Markets', icon: faChartLine },
-    { id: 'world', name: 'World', icon: faGlobeAmericas },
+    { id: 'home', name: 'Top Stories', icon: Zap },
+    { id: 'business', name: 'Business', icon: TrendingUp },
+    { id: 'technology', name: 'Tech', icon: Bot },
+    { id: 'finance', name: 'Markets', icon: TrendingUp },
+    { id: 'world', name: 'World', icon: Globe },
     { id: 'politics', name: 'Politics', icon: null },
   ];
 
@@ -500,7 +498,7 @@ const ArticlePage = () => {
     }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><FontAwesomeIcon icon={faBolt} spin size="2x" className="text-blue-600" /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center"><Zap size={32} className="text-blue-600 animate-pulse" /></div>;
   if (error) return <div className="text-center py-20 px-4 text-red-600">{error}</div>;
   if (!article) return <div className="text-center py-20 px-4">Article not found</div>;
 
@@ -1078,7 +1076,7 @@ const ArticlePage = () => {
             <div className="absolute top-4 left-4 right-4">
               <div className="flex flex-wrap gap-2 mb-2">
                 <span className="bg-blue-600/80 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
-                <span className="text-gray-300 text-[10px] py-1"><FontAwesomeIcon icon={faClock} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
+                <span className="text-gray-300 text-[10px] py-1"><Clock size={12} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
               </div>
               <h1 className="text-xl font-bold text-white leading-tight font-serif drop-shadow-lg">{article.title}</h1>
             </div>
@@ -1103,11 +1101,11 @@ const ArticlePage = () => {
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2.5">
                 <div className="flex items-center justify-between">
                   <h3 className="text-white font-bold text-sm flex items-center gap-1.5">
-                    <FontAwesomeIcon icon={faBolt} className="text-yellow-300 text-sm" />
+                    <Zap size={14} className="text-yellow-300" />
                     <span>FOREXYY INSIGHT</span>
                     {isTyping && <span className="text-[10px] text-blue-200 animate-pulse ml-1">✍️</span>}
                   </h3>
-                  <FontAwesomeIcon icon={faRobot} className="text-white/70 text-sm" />
+                  <Bot size={14} className="text-white/70" />
                 </div>
               </div>
 
@@ -1162,7 +1160,7 @@ const ArticlePage = () => {
         <div className="hidden sm:block mb-3 sm:mb-4">
           <div className="flex flex-wrap gap-2 mb-2 sm:mb-3">
             <span className="bg-blue-100 text-blue-800 text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
-            <span className="text-gray-400 text-[10px] sm:text-xs py-1"><FontAwesomeIcon icon={faClock} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
+            <span className="text-gray-400 text-[10px] sm:text-xs py-1"><Clock size={12} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
           </div>
           <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight font-serif">{article.title}</h1>
         </div>
@@ -1231,12 +1229,12 @@ const ArticlePage = () => {
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 sm:px-4 py-2.5 sm:py-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-white font-bold text-sm sm:text-base flex items-center gap-1.5 sm:gap-2">
-                      <FontAwesomeIcon icon={faBolt} className="text-yellow-300 text-sm" />
+                      <Zap size={14} className="text-yellow-300" />
                       <span className="hidden xs:inline">FOREXYY INSIGHT</span>
                       <span className="inline xs:hidden">INSIGHT</span>
                       {isTyping && <span className="text-[10px] sm:text-xs text-blue-200 animate-pulse ml-1 sm:ml-2">✍️</span>}
                     </h3>
-                    <FontAwesomeIcon icon={faRobot} className="text-white/70 text-sm sm:text-base" />
+                    <Bot size={16} className="text-white/70" />
                   </div>
                 </div>
 
@@ -1487,7 +1485,7 @@ const ArticlePage = () => {
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 rounded-lg sm:rounded-xl border border-blue-200 mb-6 sm:mb-8">
                 <div className="flex items-center gap-2.5 sm:gap-3">
                   <div className="animate-spin">
-                    <FontAwesomeIcon icon={faRobot} className="text-blue-600 text-xl sm:text-2xl" />
+                    <Bot size={28} className="text-blue-600" />
                   </div>
                   <div>
                     <p className="text-blue-900 font-semibold text-sm sm:text-base">Forexyy AI Analysis Generating...</p>
@@ -1515,17 +1513,17 @@ const ArticlePage = () => {
             onClick={handleShare}
             className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full text-xs sm:text-sm font-medium transition touch-manipulation"
           >
-            <FontAwesomeIcon icon={faShare} /> Share
+            <Share2 size={16} /> Share
           </button>
           <button
             onClick={handleBookmark}
             className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 ${bookmarked ? 'bg-blue-100 text-blue-600' : 'bg-gray-100'} hover:bg-gray-200 active:bg-gray-300 rounded-full text-xs sm:text-sm font-medium transition touch-manipulation`}
           >
-            <FontAwesomeIcon icon={faBookmark} /> {bookmarked ? 'Saved' : 'Save'}
+            <Bookmark size={16} /> {bookmarked ? 'Saved' : 'Save'}
           </button>
           <div className="ml-auto flex gap-2">
-            <button className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full active:bg-blue-100 touch-manipulation"><FontAwesomeIcon icon={faTwitter} /></button>
-            <button className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full active:bg-blue-100 touch-manipulation"><FontAwesomeIcon icon={faFacebook} /></button>
+            <button className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full active:bg-blue-100 touch-manipulation"><Twitter size={16} /></button>
+            <button className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full active:bg-blue-100 touch-manipulation"><Facebook size={16} /></button>
           </div>
         </div>
 

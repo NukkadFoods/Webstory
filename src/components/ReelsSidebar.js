@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Link } from 'react-router-dom';
 import { getYouTubeVideos } from '../services/youtubeService';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faTimes, faChevronLeft } from '@fortawesome/free-solid-svg-icons';
+import { Play, X, ChevronLeft } from 'lucide-react';
 import ReelPlayer from './ReelPlayer';
 
 const ReelsSidebar = ({ horizontal = false }) => {
@@ -71,18 +70,18 @@ const ReelsSidebar = ({ horizontal = false }) => {
               {/* Play Icon Overlay */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="bg-white/30 backdrop-blur-sm p-3 rounded-full">
-                  <FontAwesomeIcon icon={faPlay} className="text-white text-xl" />
+                  <Play size={12} className="text-white text-xl" />
                 </div>
               </div>
 
               <div className="absolute top-2 right-2 bg-red-600 rounded px-1.5 py-0.5 flex items-center gap-1 text-white text-[8px] font-bold">
-                <FontAwesomeIcon icon={faPlay} className="text-[6px]" /> SHORTS
+                <Play size={12} className="text-[6px]" /> SHORTS
               </div>
 
               <div className="absolute bottom-0 left-0 w-full p-2">
                 <h4 className="text-white font-semibold text-[10px] leading-snug line-clamp-2">{reel.title}</h4>
                 <p className="text-gray-300 text-[8px] flex items-center gap-1 mt-1">
-                  <FontAwesomeIcon icon={faPlay} className="text-[6px]" />
+                  <Play size={12} className="text-[6px]" />
                   {parseInt(reel.viewCount).toLocaleString()} views
                 </p>
               </div>
@@ -129,9 +128,9 @@ const ReelsSidebar = ({ horizontal = false }) => {
           className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-l from-pink-600 to-pink-500 text-white py-4 px-2 rounded-l-xl shadow-lg flex flex-col items-center gap-1 hover:px-3 transition-all duration-300"
           style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
         >
-          <FontAwesomeIcon icon={faPlay} className="text-sm rotate-90 mb-1" />
+          <Play size={12} className="text-sm rotate-90 mb-1" />
           <span className="text-xs font-bold tracking-wider">REELS</span>
-          <FontAwesomeIcon icon={faChevronLeft} className="text-xs mt-1 animate-pulse" />
+          <ChevronLeft size={12} className="text-xs mt-1 animate-pulse" />
         </button>
 
         {/* Overlay */}
@@ -146,17 +145,18 @@ const ReelsSidebar = ({ horizontal = false }) => {
         <div
           className={`fixed top-0 right-0 h-full w-[75%] max-w-[280px] bg-white z-50 shadow-2xl transform transition-transform duration-300 ease-out ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'
             }`}
+          style={{ contain: 'layout' }}
         >
           {/* Drawer Header */}
           <div className="sticky top-0 bg-gradient-to-r from-pink-600 to-pink-500 p-4 flex items-center justify-between">
             <h3 className="font-bold text-white text-sm uppercase tracking-wider flex items-center gap-2">
-              <FontAwesomeIcon icon={faPlay} /> Top Reels
+              <Play size={12} /> Top Reels
             </h3>
             <button
               onClick={() => setIsDrawerOpen(false)}
               className="text-white hover:bg-white/20 p-2 rounded-full transition"
             >
-              <FontAwesomeIcon icon={faTimes} />
+              <X size={18} />
             </button>
           </div>
 
@@ -180,18 +180,18 @@ const ReelsSidebar = ({ horizontal = false }) => {
                 {/* Play Icon Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full">
-                    <FontAwesomeIcon icon={faPlay} className="text-white text-2xl" />
+                    <Play size={12} className="text-white text-2xl" />
                   </div>
                 </div>
 
                 <div className="absolute top-2 right-2 bg-red-600 rounded px-1.5 py-0.5 flex items-center gap-1 text-white text-[8px] font-bold">
-                  <FontAwesomeIcon icon={faPlay} className="text-[6px]" /> SHORTS
+                  <Play size={12} className="text-[6px]" /> SHORTS
                 </div>
 
                 <div className="absolute bottom-0 left-0 w-full p-2">
                   <h4 className="text-white font-semibold text-[10px] leading-snug line-clamp-2">{reel.title}</h4>
                   <p className="text-gray-300 text-[9px] flex items-center gap-1 mt-1">
-                    <FontAwesomeIcon icon={faPlay} className="text-[7px]" />
+                    <Play size={12} className="text-[7px]" />
                     {parseInt(reel.viewCount).toLocaleString()} views
                   </p>
                 </div>
@@ -239,7 +239,7 @@ const ReelsSidebar = ({ horizontal = false }) => {
         <div className="sticky top-24 h-[calc(100vh-6rem)] px-3">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
             <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wider flex items-center gap-2">
-              <FontAwesomeIcon icon={faPlay} className="text-pink-500" /> Top Reels
+              <Play size={12} className="text-pink-500" /> Top Reels
             </h3>
             <Link to="/reels" className="text-xs text-blue-600 cursor-pointer font-medium">View All</Link>
           </div>
@@ -263,19 +263,19 @@ const ReelsSidebar = ({ horizontal = false }) => {
                 {/* Play Icon Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full">
-                    <FontAwesomeIcon icon={faPlay} className="text-white text-xl" />
+                    <Play size={12} className="text-white text-xl" />
                   </div>
                 </div>
 
                 <div className="absolute top-2 right-2 bg-red-600 rounded px-2 py-0.5 flex items-center gap-1 text-white text-[10px] font-bold">
-                  <FontAwesomeIcon icon={faPlay} className="text-[8px]" /> SHORTS
+                  <Play size={12} className="text-[8px]" /> SHORTS
                 </div>
 
                 <div className="absolute bottom-0 left-0 w-full p-3">
                   <h4 className="text-white font-semibold text-xs leading-snug mb-1 line-clamp-2">{reel.title}</h4>
                   <p className="text-gray-300 text-[10px] flex items-center gap-2">
                     <span className="flex items-center gap-1">
-                      <FontAwesomeIcon icon={faPlay} className="text-[8px]" /> {parseInt(reel.viewCount).toLocaleString()} views
+                      <Play size={12} className="text-[8px]" /> {parseInt(reel.viewCount).toLocaleString()} views
                     </span>
                     {reel.duration && <span>• {reel.duration}</span>}
                   </p>

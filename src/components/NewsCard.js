@@ -130,6 +130,10 @@ const NewsCard = ({ article, id, title, abstract, byline, published_date, image,
             alt={imageOptions[currentImageIndex]?.alt || articleData.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
+            decoding="async"
+            width="400"
+            height="300"
+            style={{ aspectRatio: '4/3' }}
             onError={handleImageError}
             referrerPolicy="no-referrer"
           />

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faThumbsUp, faSpinner, faArrowUp, faArrowDown, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
+import { Eye, ThumbsUp, Loader2, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
 
 const ReelsPage = () => {
   const [videos, setVideos] = useState([]);
@@ -233,7 +232,7 @@ const ReelsPage = () => {
     return (
       <div className="flex justify-center items-center h-screen bg-black">
         <div className="text-center">
-          <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-white mb-4" />
+          <Loader2 size={48} className="text-white mb-4 animate-spin mx-auto" />
           <p className="text-white">Loading reels...</p>
         </div>
       </div>
@@ -307,25 +306,25 @@ const ReelsPage = () => {
                   
                   <div className="flex items-center space-x-4 text-sm mb-3">
                     <span className="flex items-center">
-                      <FontAwesomeIcon icon={faEye} className="mr-1" />
+                      <Eye size={14} className="mr-1" />
                       {formatViewCount(video.viewCount)}
                     </span>
                     <span className="flex items-center">
-                      <FontAwesomeIcon icon={faThumbsUp} className="mr-1" />
+                      <ThumbsUp size={14} className="mr-1" />
                       {formatViewCount(video.likeCount)}
                     </span>
                     <span>{formatDate(video.publishedAt)}</span>
                   </div>
 
                   {/* Watch on YouTube Button */}
-                  <a 
+                  <a
                     href={video.shortsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center bg-red-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-red-700 transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <FontAwesomeIcon icon={faExternalLinkAlt} className="mr-2" />
+                    <ExternalLink size={14} className="mr-2" />
                     Watch on YouTube
                   </a>
                 </div>
@@ -339,7 +338,7 @@ const ReelsPage = () => {
                     className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white p-3 rounded-full transition-all"
                     aria-label="Previous video"
                   >
-                    <FontAwesomeIcon icon={faArrowUp} size="lg" />
+                    <ArrowUp size={24} />
                   </button>
                 )}
                 {currentIndex < videos.length - 1 && (
@@ -348,7 +347,7 @@ const ReelsPage = () => {
                     className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white p-3 rounded-full transition-all"
                     aria-label="Next video"
                   >
-                    <FontAwesomeIcon icon={faArrowDown} size="lg" />
+                    <ArrowDown size={24} />
                   </button>
                 )}
               </div>
@@ -407,7 +406,7 @@ const ReelsPage = () => {
                     <div className="text-center space-y-4">
                       <div className="bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 inline-block">
                         <p className="text-white text-sm font-semibold flex items-center">
-                          <FontAwesomeIcon icon={faArrowDown} className="mr-2 animate-bounce" />
+                          <ArrowDown size={16} className="mr-2 animate-bounce" />
                           Swipe up to continue
                         </p>
                       </div>
@@ -422,14 +421,14 @@ const ReelsPage = () => {
                     className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white p-3 rounded-full transition-all"
                     aria-label="Previous"
                   >
-                    <FontAwesomeIcon icon={faArrowUp} size="lg" />
+                    <ArrowUp size={24} />
                   </button>
                   <button
                     onClick={scrollToNext}
                     className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white p-3 rounded-full transition-all"
                     aria-label="Next video"
                   >
-                    <FontAwesomeIcon icon={faArrowDown} size="lg" />
+                    <ArrowDown size={24} />
                   </button>
                 </div>
               </div>
@@ -441,7 +440,7 @@ const ReelsPage = () => {
         {loadingMore && (
           <div className="relative h-screen w-full snap-start flex items-center justify-center bg-black">
             <div className="text-center">
-              <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-white mb-4" />
+              <Loader2 size={48} className="text-white mb-4 animate-spin mx-auto" />
               <p className="text-white">Loading more reels...</p>
             </div>
           </div>

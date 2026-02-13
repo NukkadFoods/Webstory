@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faChevronUp, faChevronDown, faVolumeUp, faVolumeMute, faExpand, faHeart, faComment, faShare, faPlay, faPause } from '@fortawesome/free-solid-svg-icons';
+import { X, ChevronUp, ChevronDown, Volume2, VolumeX, Heart, MessageCircle, Share2, Play } from 'lucide-react';
 
 const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasMore }) => {
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -243,7 +242,7 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                 onClick={onClose}
                 className="absolute top-4 right-4 z-50 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition cursor-pointer"
             >
-                <FontAwesomeIcon icon={faTimes} size="lg" />
+                <X size={24} />
             </button>
 
             {/* Video Counter */}
@@ -278,7 +277,7 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                     <div className="absolute inset-0 z-10 bg-transparent cursor-grab active:cursor-grabbing flex items-center justify-center">
                         {isPaused && (
                             <div className="bg-black/40 p-6 rounded-full backdrop-blur-sm animate-pulse">
-                                <FontAwesomeIcon icon={faPlay} className="text-white text-4xl ml-2" />
+                                <Play size={48} className="text-white ml-2" />
                             </div>
                         )}
                     </div>
@@ -300,7 +299,7 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                         </div>
 
                         <p className="text-gray-300 text-xs flex items-center gap-2">
-                            <FontAwesomeIcon icon={faPlay} className="text-[10px]" />
+                            <Play size={10} />
                             {parseInt(currentReel.viewCount).toLocaleString()} views
                         </p>
                     </div>
@@ -314,7 +313,7 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                     >
                         <div className={`p-3 rounded-full ${isLiked[videoId] ? 'bg-red-500/20' : 'bg-white/10'
                             } hover:bg-white/20 transition backdrop-blur-sm`}>
-                            <FontAwesomeIcon icon={faHeart} size="lg" />
+                            <Heart size={24} />
                         </div>
                         <span className="text-xs font-medium drop-shadow-md">Like</span>
                     </button>
@@ -326,7 +325,7 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                         className="flex flex-col items-center gap-1 text-white"
                     >
                         <div className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition backdrop-blur-sm">
-                            <FontAwesomeIcon icon={faComment} size="lg" />
+                            <MessageCircle size={24} />
                         </div>
                         <span className="text-xs font-medium drop-shadow-md">Comment</span>
                     </a>
@@ -336,7 +335,7 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                         className="flex flex-col items-center gap-1 text-white"
                     >
                         <div className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition backdrop-blur-sm">
-                            <FontAwesomeIcon icon={faShare} size="lg" />
+                            <Share2 size={24} />
                         </div>
                         <span className="text-xs font-medium drop-shadow-md">Share</span>
                     </button>
@@ -346,7 +345,7 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                         className="flex flex-col items-center gap-1 text-white"
                     >
                         <div className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition backdrop-blur-sm">
-                            <FontAwesomeIcon icon={isMuted ? faVolumeMute : faVolumeUp} size="lg" />
+                            {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
                         </div>
                         <span className="text-xs font-medium drop-shadow-md">{isMuted ? 'Unmute' : 'Mute'}</span>
                     </button>
@@ -362,7 +361,7 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                             : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
                             }`}
                     >
-                        <FontAwesomeIcon icon={faChevronUp} size="lg" />
+                        <ChevronUp size={24} />
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); goToNext(); }}
@@ -372,7 +371,7 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
                             : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
                             }`}
                     >
-                        <FontAwesomeIcon icon={faChevronDown} size="lg" />
+                        <ChevronDown size={24} />
                     </button>
                 </div>
 

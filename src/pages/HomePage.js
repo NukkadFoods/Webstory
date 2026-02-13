@@ -9,17 +9,7 @@ import ReelsSidebar from '../components/ReelsSidebar';
 import NewsletterPopup from '../components/NewsletterPopup';
 
 // Icons
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faChevronRight,
-  faSpinner,
-  faArrowDown,
-  faRobot,
-  faBolt,
-  faSearch,
-  faChartLine,
-  faGlobeAmericas
-} from '@fortawesome/free-solid-svg-icons';
+import { Loader2, ArrowDown, Bot, Zap, TrendingUp, Globe } from 'lucide-react';
 
 const HomePage = () => {
   // --- State Management ---
@@ -35,11 +25,11 @@ const HomePage = () => {
 
   // --- Configuration ---
   const categories = [
-    { id: 'home', name: 'Top Stories', icon: faBolt },
+    { id: 'home', name: 'Top Stories', icon: Zap },
     { id: 'politics', name: 'Politics', icon: null },
-    { id: 'business', name: 'Business', icon: faChartLine },
-    { id: 'technology', name: 'Tech', icon: faRobot },
-    { id: 'world', name: 'World', icon: faGlobeAmericas },
+    { id: 'business', name: 'Business', icon: TrendingUp },
+    { id: 'technology', name: 'Tech', icon: Bot },
+    { id: 'world', name: 'World', icon: Globe },
     { id: 'entertainment', name: 'Pop Culture', icon: null },
     { id: 'health', name: 'Health', icon: null },
     { id: 'sports', name: 'Sports', icon: null },
@@ -149,7 +139,7 @@ const HomePage = () => {
             {/* Loading State */}
             {loading && (
               <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
-                <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-blue-600/50" />
+                <Loader2 size={48} className="text-blue-600/50 animate-spin" />
                 <p className="text-gray-400 font-medium animate-pulse">Curating your briefing...</p>
               </div>
             )}
@@ -282,11 +272,11 @@ const HomePage = () => {
                       <span className="flex items-center gap-2">
                         {loadMoreLoading ? (
                           <>
-                            <FontAwesomeIcon icon={faSpinner} spin /> Loading...
+                            <Loader2 size={16} className="animate-spin" /> Loading...
                           </>
                         ) : (
                           <>
-                            Load More <FontAwesomeIcon icon={faArrowDown} className="group-hover:translate-y-1 transition-transform" />
+                            Load More <ArrowDown size={16} className="group-hover:translate-y-1 transition-transform" />
                           </>
                         )}
                       </span>

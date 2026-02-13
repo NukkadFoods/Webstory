@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFacebook, faTwitter, faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons';
-import { faCheck, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { Facebook, Twitter, Instagram, Youtube, Check, AlertTriangle } from 'lucide-react';
 
 
 const Footer = () => {
@@ -107,16 +105,16 @@ const Footer = () => {
             <h3 className="text-xl font-bold mb-4">Connect With Us</h3>
             <div className="flex space-x-4 mb-4">
               <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
-                <FontAwesomeIcon icon={faFacebook} size="lg" />
+                <Facebook size={20} />
               </a>
               <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
-                <FontAwesomeIcon icon={faTwitter} size="lg" />
+                <Twitter size={20} />
               </a>
               <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
-                <FontAwesomeIcon icon={faInstagram} size="lg" />
+                <Instagram size={20} />
               </a>
               <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
-                <FontAwesomeIcon icon={faYoutube} size="lg" />
+                <Youtube size={20} />
               </a>
             </div>
             <p className="text-gray-400">
@@ -143,11 +141,8 @@ const Footer = () => {
 
             {/* Status Message */}
             {status && (
-              <div className={`mt-2 text-sm ${status === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-                <FontAwesomeIcon
-                  icon={status === 'success' ? faCheck : faExclamationTriangle}
-                  className="mr-1"
-                />
+              <div className={`mt-2 text-sm flex items-center gap-1 ${status === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                {status === 'success' ? <Check size={14} /> : <AlertTriangle size={14} />}
                 {message}
               </div>
             )}

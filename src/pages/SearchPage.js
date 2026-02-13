@@ -5,8 +5,7 @@ import NewsCard from '../components/NewsCard';
 import FluidAd from '../components/FluidAd';
 import Header from '../components/Header';
 import ReelsSidebar from '../components/ReelsSidebar';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faSearch, faSpinner, faArrowDown } from '@fortawesome/free-solid-svg-icons';
+import { ArrowLeft, Search, Loader2, ArrowDown } from 'lucide-react';
 
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -158,7 +157,7 @@ const SearchPage = () => {
           <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <h1 className="text-2xl sm:text-3xl font-bold">Search Results</h1>
             <Link to="/" className="inline-flex items-center text-blue-700 text-sm sm:text-base">
-              <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Back to home
+              <ArrowLeft size={16} className="mr-2" /> Back to home
             </Link>
           </div>
 
@@ -173,9 +172,9 @@ const SearchPage = () => {
               />
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base touch-manipulation"
+                className="bg-blue-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base touch-manipulation flex items-center"
               >
-                <FontAwesomeIcon icon={faSearch} className="sm:mr-2" />
+                <Search size={18} className="sm:mr-2" />
                 <span className="hidden sm:inline">Search</span>
               </button>
             </form>
@@ -196,7 +195,7 @@ const SearchPage = () => {
 
           {loading && (
             <div className="flex justify-center my-12">
-              <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-blue-600" />
+              <Loader2 size={48} className="text-blue-600 animate-spin" />
             </div>
           )}
 
@@ -233,12 +232,12 @@ const SearchPage = () => {
                       >
                         {loadingMore ? (
                           <>
-                            <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                            <Loader2 size={16} className="mr-2 animate-spin" />
                             Loading...
                           </>
                         ) : (
                           <>
-                            <FontAwesomeIcon icon={faArrowDown} className="mr-2" />
+                            <ArrowDown size={16} className="mr-2" />
                             Load More
                           </>
                         )}

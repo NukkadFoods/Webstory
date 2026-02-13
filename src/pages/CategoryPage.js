@@ -9,8 +9,7 @@ import NewsGrid from '../components/NewsGrid';
 import ReelsSidebar from '../components/ReelsSidebar';
 import Header from '../components/Header';
 import FluidAd from '../components/FluidAd';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faSpinner, faChevronRight, faRobot } from '@fortawesome/free-solid-svg-icons';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 const CategoryPage = () => {
   const { category } = useParams();
@@ -147,13 +146,13 @@ const CategoryPage = () => {
           <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{displayName}</h1>
             <Link to="/" className="mt-2 sm:mt-0 inline-flex items-center text-blue-600 hover:text-blue-700 text-sm sm:text-base">
-              <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Back to home
+              <ArrowLeft size={16} className="mr-2" /> Back to home
             </Link>
           </div>
 
       {loading && (
         <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
-          <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-blue-600/50" />
+          <Loader2 size={48} className="text-blue-600/50 animate-spin" />
           <p className="text-gray-400 font-medium animate-pulse">Loading {displayName}...</p>
         </div>
       )}

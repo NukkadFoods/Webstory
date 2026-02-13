@@ -640,10 +640,10 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
     return (
         <div className="w-full">
             <div
-                className={`rounded-xl p-2 sm:p-3 transition-all duration-300 ease-out
+                className={`rounded-xl p-2 sm:p-3 transition-all duration-300 ease-out border
                     ${showGlassEffect
-                        ? 'backdrop-blur-md bg-white/15 border border-white/25 shadow-lg'
-                        : 'bg-transparent backdrop-blur-0 border-0 shadow-none'}`}
+                        ? 'backdrop-blur-md bg-white/15 border-white/25 shadow-lg'
+                        : 'bg-transparent backdrop-blur-0 border-transparent shadow-none'}`}
                 onTouchStart={() => setIsHovered(true)}
                 onTouchEnd={() => setTimeout(() => setIsHovered(false), 3000)}
                 onMouseEnter={() => setIsHovered(true)}

@@ -48,12 +48,12 @@ const FluidAd = ({ className = '' }) => {
   }
 
   return (
-    <div className={`my-6 ${className}`}>
+    <div className={`my-6 ${className}`} style={{ minHeight: '280px' }}>
       {/* Removed advertisement label and container - ads will show where they want */}
-      <ins 
+      <ins
         ref={adRef}
         className="adsbygoogle"
-        style={{ display: 'block' }}
+        style={{ display: 'block', minHeight: '250px' }}
         data-ad-format="fluid"
         data-ad-layout-key="-fb+5w+4e-db+86"
         data-ad-client="ca-pub-1825834035687372"

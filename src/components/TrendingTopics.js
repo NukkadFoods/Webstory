@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faRotate } from '@fortawesome/free-solid-svg-icons';
+import { TrendingUp, RefreshCw } from 'lucide-react';
 import { getTopStories } from '../services/storyService';
 import { searchArticles } from '../services/articleService';
 
@@ -417,7 +416,7 @@ const TrendingTopics = () => {
     return (
       <div className="trending-topics my-6">
         <h3 className="text-xl font-bold mb-4 flex items-center">
-          <FontAwesomeIcon icon={faChartLine} className="mr-2 text-red-600" />
+          <TrendingUp className="mr-2 text-red-600" size={20} />
           Trending Topics
         </h3>
         <div className="flex flex-wrap gap-2 mt-3">
@@ -438,23 +437,23 @@ const TrendingTopics = () => {
     <div className="trending-topics my-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-bold flex items-center">
-          <FontAwesomeIcon icon={faChartLine} className="mr-2 text-red-600" />
+          <TrendingUp className="mr-2 text-red-600" size={20} />
           Trending Topics
         </h3>
-        
+
         <div className="flex items-center">
           {refreshTime && (
             <span className="text-xs text-gray-500 mr-2">
               Updated: {refreshTime}
             </span>
           )}
-          <button 
-            onClick={handleRefresh} 
+          <button
+            onClick={handleRefresh}
             className={`text-gray-500 hover:text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`}
             title="Refresh trending topics"
             disabled={isRefreshing}
           >
-            <FontAwesomeIcon icon={faRotate} />
+            <RefreshCw size={16} />
           </button>
         </div>
       </div>

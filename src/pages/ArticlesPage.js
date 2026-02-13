@@ -7,8 +7,7 @@ import TrendingTopics from '../components/TrendingTopics';
 import FluidAd from '../components/FluidAd';
 import Header from '../components/Header';
 import ReelsSidebar from '../components/ReelsSidebar';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faSpinner, faNewspaper } from '@fortawesome/free-solid-svg-icons';
+import { Search, Loader2, Newspaper } from 'lucide-react';
 
 const ArticlesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -180,7 +179,7 @@ const ArticlesPage = () => {
                   className="bg-blue-600 px-4 py-2.5 text-white rounded-r-lg hover:bg-blue-700 transition duration-200 touch-manipulation"
                   disabled={!searchQuery}
                 >
-                  <FontAwesomeIcon icon={faSearch} />
+                  <Search size={18} />
                 </button>
               </div>
 
@@ -218,7 +217,7 @@ const ArticlesPage = () => {
                   onClick={handleShowAllArticles}
                   className="text-xs sm:text-sm flex items-center gap-1 text-blue-600 hover:text-blue-800 touch-manipulation"
                 >
-                  <FontAwesomeIcon icon={faNewspaper} />
+                  <Newspaper size={14} />
                   Show all
                 </button>
               )}
@@ -241,7 +240,7 @@ const ArticlesPage = () => {
           {/* Loading state */}
           {loading && (
             <div className="flex justify-center my-12">
-              <FontAwesomeIcon icon={faSpinner} spin size="3x" className="text-blue-600" />
+              <Loader2 size={48} className="text-blue-600 animate-spin" />
             </div>
           )}
 

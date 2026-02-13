@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import { X, Mail } from 'lucide-react';
 import NewsletterSignup from './NewsletterSignup';
 
 const NewsletterPopup = () => {
@@ -37,13 +36,13 @@ const NewsletterPopup = () => {
                     onClick={handleClose}
                     className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"
                 >
-                    <FontAwesomeIcon icon={faTimes} size="lg" />
+                    <X size={24} />
                 </button>
 
                 {/* Content */}
                 <div className="text-center mb-6">
                     <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FontAwesomeIcon icon={faEnvelope} size="2x" />
+                        <Mail size={32} />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">
                         Get Daily Updates

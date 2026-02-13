@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faClock } from '@fortawesome/free-solid-svg-icons';
+import { Search, Clock } from 'lucide-react';
 
 // Graffiti images - you'll need to replace these URLs with your actual graffiti images
 const graffitiImages = [
@@ -57,12 +56,12 @@ const HeroSection = ({ featuredArticle }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <button 
+              <button
                 type="submit"
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Search news"
               >
-                <FontAwesomeIcon icon={faSearch} />
+                <Search size={18} />
               </button>
             </form>
           </div>
@@ -82,7 +81,7 @@ const HeroSection = ({ featuredArticle }) => {
                 </h3>
                 <p className="text-white text-opacity-80 mb-4">{featuredArticle.abstract}</p>
                 <div className="flex items-center text-sm">
-                  <FontAwesomeIcon icon={faClock} className="mr-1" />
+                  <Clock size={14} className="mr-1" />
                   <span className="mr-3">{new Date(featuredArticle.published_date).toLocaleDateString()}</span>
                   <span>{featuredArticle.byline}</span>
                 </div>
