@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getArticleById } from '../services/articleService';
 import { getWallStreetArticleByUrl } from '../services/wallStreetService';
@@ -6,10 +6,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClock, faUser, faTag, faArrowLeft, faShare, faBookmark, faExclamationTriangle, faBolt, faChartLine, faRobot, faGlobeAmericas, faSearch, faPlay, faVolumeMute } from '@fortawesome/free-solid-svg-icons';
 import { faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
 import Header from '../components/Header';
-import RelatedArticles from '../components/RelatedArticles';
-import ReelsSidebar from '../components/ReelsSidebar';
 import FluidAd from '../components/FluidAd';
-import AudioPlayer from '../components/AudioPlayer';
+
+// Lazy load heavy components — they load after article content renders
+const AudioPlayer = React.lazy(() => import('../components/AudioPlayer'));
+const ReelsSidebar = React.lazy(() => import('../components/ReelsSidebar'));
+const RelatedArticles = React.lazy(() => import('../components/RelatedArticles'));
 
 const ArticlePage = () => {
   const { id } = useParams();
@@ -185,7 +187,7 @@ const ArticlePage = () => {
       const progress = docHeight > 0 ? scrollTop / docHeight : 0;
       setScrollProgress(progress);
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -503,6 +505,7 @@ const ArticlePage = () => {
   if (!article) return <div className="text-center py-20 px-4">Article not found</div>;
 
   return (
+    <Suspense fallback={null}>
     <div className="bg-white min-h-screen font-sans selection:bg-blue-100">
 
       {/* Progress Bar */}
@@ -1579,6 +1582,7 @@ const ArticlePage = () => {
 
       <FluidAd className="my-8" />
     </div>
+    </Suspense>
   );
 };
 

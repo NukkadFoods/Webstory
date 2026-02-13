@@ -190,6 +190,9 @@ const HomePage = () => {
                           src={getImage(story)}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           alt={story.title}
+                          loading="lazy"
+                          width="320"
+                          height="192"
                         />
                         {/* Gradient overlay */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
@@ -225,6 +228,10 @@ const HomePage = () => {
                       src={getImage(heroArticle)}
                       alt={heroArticle.title}
                       className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                      fetchPriority="high"
+                      width="1200"
+                      height="675"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1200px"
                     />
                     {/* Gradient overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />

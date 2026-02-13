@@ -67,12 +67,14 @@ const Header = () => {
             <button
               onClick={() => setSearchOpen(!searchOpen)}
               className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+              aria-label="Search news"
             >
               <FontAwesomeIcon icon={faSearch} />
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+              aria-label="Toggle navigation menu"
             >
               <FontAwesomeIcon icon={mobileMenuOpen ? faTimes : faBars} />
             </button>

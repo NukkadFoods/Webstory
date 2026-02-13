@@ -694,6 +694,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                                 key={idx}
                                 onClick={() => jumpToSection(idx)}
                                 disabled={preloadStatus !== 'ready'}
+                                aria-label={`Jump to ${section.title}`}
                                 className={`flex-1 text-center py-1 px-1 rounded text-[9px] font-medium transition-all cursor-pointer
                                     ${idx === currentSection
                                         ? 'bg-blue-600 text-white shadow-md'
@@ -715,6 +716,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                     {/* Play Button */}
                     <button
                         onClick={handlePlay}
+                        aria-label={isPlaying ? 'Pause audio' : preloadStatus === 'loading' ? 'Loading audio' : 'Play AI commentary'}
                         className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all duration-300 flex-shrink-0 touch-manipulation ${
                             isPlaying
                                 ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30'
@@ -792,6 +794,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                     {/* Mute Button */}
                     <button
                         onClick={toggleMute}
+                        aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
                         className={`p-2 sm:p-1.5 hover:text-white active:text-blue-400 transition-all duration-300 flex-shrink-0 touch-manipulation ${showGlassEffect ? 'text-gray-400' : 'text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]'}`}
                     >
                         {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}

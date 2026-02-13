@@ -28,16 +28,16 @@ const HeroSection = ({ featuredArticle }) => {
       {/* Decorative graffiti images - positioned absolutely */}
       <div className="absolute top-0 left-0 w-full h-full z-0 opacity-10">
         <div className="absolute top-0 left-0">
-          <img src={graffitiImages[0]} alt="" className="w-40 md:w-52 rotate-12" />
+          <img src={graffitiImages[0]} alt="" className="w-40 md:w-52 rotate-12" loading="lazy" width="208" height="208" decoding="async" />
         </div>
         <div className="absolute bottom-0 left-10 md:left-20">
-          <img src={graffitiImages[1]} alt="" className="w-36 md:w-48 -rotate-6" />
+          <img src={graffitiImages[1]} alt="" className="w-36 md:w-48 -rotate-6" loading="lazy" width="192" height="192" decoding="async" />
         </div>
         <div className="absolute top-10 right-10 md:right-20">
-          <img src={graffitiImages[2]} alt="" className="w-36 md:w-48 rotate-3" />
+          <img src={graffitiImages[2]} alt="" className="w-36 md:w-48 rotate-3" loading="lazy" width="192" height="192" decoding="async" />
         </div>
         <div className="absolute bottom-0 right-0">
-          <img src={graffitiImages[3]} alt="" className="w-40 md:w-52 -rotate-12" />
+          <img src={graffitiImages[3]} alt="" className="w-40 md:w-52 -rotate-12" loading="lazy" width="208" height="208" decoding="async" />
         </div>
       </div>
 
@@ -60,6 +60,7 @@ const HeroSection = ({ featuredArticle }) => {
               <button 
                 type="submit"
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Search news"
               >
                 <FontAwesomeIcon icon={faSearch} />
               </button>
@@ -98,7 +99,10 @@ const HeroSection = ({ featuredArticle }) => {
                     src={featuredArticle.multimedia[0].url} 
                     alt={featuredArticle.title}
                     className="h-full w-full object-cover"
-                    style={{ minHeight: '250px' }}
+                    style={{ minHeight: '250px', aspectRatio: '16/9' }}
+                    fetchPriority="high"
+                    width="600"
+                    height="338"
                   />
                 ) : (
                   <div className="bg-blue-800 h-full flex items-center justify-center">

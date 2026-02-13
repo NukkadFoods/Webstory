@@ -6,6 +6,13 @@
     <title>Forexyy | AI-Powered News Analysis & Breaking Stories</title>
     <meta name="description" content="Get AI-powered news analysis with audio commentary. Breaking news in politics, business, technology, finance, and more. Listen to news like never before.">
 
+    <!-- DNS hints — resolve early, especially for AdSense's many sockets -->
+    <link rel="preconnect" href="https://webstorybackend.onrender.com" crossorigin>
+    <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com">
+    <link rel="dns-prefetch" href="https://adservice.google.com">
+    <link rel="dns-prefetch" href="https://googleads.g.doubleclick.net">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://forexyy.com/">
@@ -31,14 +38,105 @@
     <link rel="icon" href="/favicon.ico">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1825834035687372" crossorigin="anonymous"></script>
+    <!-- Font Awesome: non-render-blocking load -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
 
     <script defer src="/_vercel/insights/script.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Pre-rendered skeleton shell — renders BEFORE JS loads -->
+      <style id="shell-styles">
+        .shell-header {
+          position: sticky; top: 0; z-index: 50;
+          background: rgba(255,255,255,0.8); backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-bottom: 1px solid #e5e7eb; height: 64px;
+          display: flex; align-items: center; padding: 0 16px;
+        }
+        .shell-logo {
+          height: 40px; width: auto;
+          image-rendering: auto;
+        }
+        .shell-logo-text {
+          font-family: Georgia, 'Times New Roman', serif;
+          font-size: 22px; font-weight: 700;
+          color: #1a1a2e; letter-spacing: -0.5px;
+          margin-left: 8px; display: none;
+        }
+        .shell-nav {
+          display: flex; gap: 8px; margin-left: 24px;
+          overflow: hidden; flex: 1;
+        }
+        .shell-pill {
+          background: #f3f4f6; border-radius: 9999px;
+          height: 32px; width: 80px; flex-shrink: 0;
+        }
+        .shell-content { padding: 16px; max-width: 1400px; margin: 0 auto; }
+        .shell-hero {
+          border-radius: 16px;
+          background: linear-gradient(135deg, #e2e8f0 25%, #cbd5e1 50%, #e2e8f0 75%);
+          background-size: 200% 100%;
+          aspect-ratio: 16/9; max-height: 420px;
+          animation: shimmer 1.5s ease-in-out infinite;
+          margin-bottom: 24px;
+        }
+        .shell-section-title {
+          height: 28px; width: 140px; background: #e5e7eb;
+          border-radius: 6px; margin-bottom: 16px;
+        }
+        .shell-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 16px;
+        }
+        .shell-card {
+          border-radius: 12px;
+          background: linear-gradient(135deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+          background-size: 200% 100%;
+          aspect-ratio: 4/3;
+          animation: shimmer 1.5s ease-in-out infinite;
+        }
+        .shell-card:nth-child(2) { animation-delay: 0.15s; }
+        .shell-card:nth-child(3) { animation-delay: 0.3s; }
+        .shell-card:nth-child(4) { animation-delay: 0.45s; }
+        .shell-card:nth-child(5) { animation-delay: 0.6s; }
+        .shell-card:nth-child(6) { animation-delay: 0.75s; }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @media (max-width: 640px) {
+          .shell-nav { display: none; }
+          .shell-logo-text { display: block; }
+          .shell-hero { aspect-ratio: 4/3; border-radius: 12px; }
+          .shell-cards { grid-template-columns: 1fr; }
+          .shell-content { padding: 12px; }
+        }
+      </style>
+      <header class="shell-header" id="shell-header">
+        <img src="/forexyy_logo.png" alt="Forexyy" class="shell-logo"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+        <span class="shell-logo-text">Forexyy</span>
+        <nav class="shell-nav">
+          <div class="shell-pill"></div><div class="shell-pill"></div>
+          <div class="shell-pill"></div><div class="shell-pill"></div>
+          <div class="shell-pill"></div>
+        </nav>
+      </header>
+      <div class="shell-content" id="shell-content">
+        <div class="shell-hero" id="shell-hero"></div>
+        <div class="shell-section-title"></div>
+        <div class="shell-cards">
+          <div class="shell-card"></div><div class="shell-card"></div>
+          <div class="shell-card"></div><div class="shell-card"></div>
+          <div class="shell-card"></div><div class="shell-card"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AdSense: moved to end of body so content renders first -->
+    <script defer src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1825834035687372" crossorigin="anonymous"></script>
 </body>
 </html>

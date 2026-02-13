@@ -1,16 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Footer from './components/Footer';
-import HomePage from './pages/HomePage';
-import ArticlePage from './pages/ArticlePage';
-import CategoryPage from './pages/CategoryPage';
-import SearchPage from './pages/SearchPage';
-import ArticlesPage from './pages/ArticlesPage';
-import ReelsPage from './pages/ReelsPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import { adSenseManager } from './utils/adSenseManager';
 import './App.css';
+
+// Route-level code splitting — each page loads only when navigated to
+const HomePage = React.lazy(() => import('./pages/HomePage'));
+const ArticlePage = React.lazy(() => import('./pages/ArticlePage'));
+const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
+const SearchPage = React.lazy(() => import('./pages/SearchPage'));
+const ArticlesPage = React.lazy(() => import('./pages/ArticlesPage'));
+const ReelsPage = React.lazy(() => import('./pages/ReelsPage'));
 
 // Component to handle route changes and reset ads
 function RouteHandler({ onLocationChange }) {
@@ -26,14 +28,16 @@ function RouteHandler({ onLocationChange }) {
   }, [location.pathname, onLocationChange]);
 
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/article/:id" element={<ArticlePage />} />
-      <Route path="/category/:category" element={<CategoryPage />} />
-      <Route path="/search" element={<SearchPage />} />
-      <Route path="/articles" element={<ArticlesPage />} />
-      <Route path="/reels" element={<ReelsPage />} />
-    </Routes>
+    <Suspense fallback={null}>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/article/:id" element={<ArticlePage />} />
+        <Route path="/category/:category" element={<CategoryPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/articles" element={<ArticlesPage />} />
+        <Route path="/reels" element={<ReelsPage />} />
+      </Routes>
+    </Suspense>
   );
 }
 
