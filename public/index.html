@@ -38,6 +38,9 @@
     <link rel="icon" href="/favicon.ico">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
+    <!-- Preload compressed logo for instant header render -->
+    <link rel="preload" as="image" href="/forexyy_logo_80.png">
+
     <!-- Font Loading - Optimized for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -120,7 +123,8 @@
         }
       </style>
       <header class="shell-header" id="shell-header">
-        <img src="/forexyy_logo.png" alt="Forexyy" class="shell-logo"
+        <img src="/forexyy_logo_80.png" alt="Forexyy" class="shell-logo"
+             width="40" height="40"
              onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
         <span class="shell-logo-text">Forexyy</span>
         <nav class="shell-nav">

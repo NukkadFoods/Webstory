@@ -43,7 +43,8 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="font-serif text-xl font-bold tracking-tighter flex items-center gap-2">
-            <img src="/forexyy_logo.png" alt="Forexyy" className="h-10 w-auto object-contain" />
+            <img src="/forexyy_logo_80.png" alt="Forexyy" className="h-10 w-auto object-contain"
+                 width="40" height="40" fetchPriority="high" />
           </Link>
 
           {/* Scrollable Nav (Center) */}

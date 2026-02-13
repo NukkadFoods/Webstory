@@ -1,7 +1,6 @@
 import React, { useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import { adSenseManager } from './utils/adSenseManager';
 import './App.css';
@@ -13,6 +12,7 @@ const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
 const SearchPage = React.lazy(() => import('./pages/SearchPage'));
 const ArticlesPage = React.lazy(() => import('./pages/ArticlesPage'));
 const ReelsPage = React.lazy(() => import('./pages/ReelsPage'));
+const Footer = React.lazy(() => import('./components/Footer'));
 
 // Component to handle route changes and reset ads
 function RouteHandler({ onLocationChange }) {
@@ -59,7 +59,9 @@ function App() {
               <RouteHandler onLocationChange={setCurrentPath} />
             </ErrorBoundary>
           </main>
-          <Footer />
+          <Suspense fallback={<div style={{ minHeight: '320px', background: '#1f2937' }} />}>
+            <Footer />
+          </Suspense>
           <SpeedInsights />
         </div>
       </Router>
