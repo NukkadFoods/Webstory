@@ -21,6 +21,10 @@
   ],
   "rewrites": [
     {
+      "source": "/unsubscribe",
+      "destination": "https://webstorybackend.onrender.com/unsubscribe"
+    },
+    {
       "source": "/robots.txt",
       "destination": "https://webstorybackend.onrender.com/robots.txt"
     },
