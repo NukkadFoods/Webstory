@@ -45,6 +45,10 @@
       "destination": "https://webstorybackend.onrender.com/api/schema/:path*"
     },
     {
+      "source": "/read/:path*",
+      "destination": "https://webstorybackend.onrender.com/read/:path*"
+    },
+    {
       "source": "/article/:path*",
       "has": [
         {
