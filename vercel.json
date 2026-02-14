@@ -43,21 +43,6 @@
     {
       "source": "/api/schema/:path*",
       "destination": "https://webstorybackend.onrender.com/api/schema/:path*"
-    },
-    {
-      "source": "/read/:path*",
-      "destination": "https://webstorybackend.onrender.com/read/:path*"
-    },
-    {
-      "source": "/article/:path*",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": "(?i).*(bot|crawl|spider|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegrambot|slackbot|discordbot|pinterest|reddit|gpt|perplexity|claude|anthropic|apple|embedly|quora|flipboard|tumblr|bitly|google|bing|yandex|baidu|duckduck).*"
-        }
-      ],
-      "destination": "https://webstorybackend.onrender.com/article/:path*"
     }
   ]
 }
