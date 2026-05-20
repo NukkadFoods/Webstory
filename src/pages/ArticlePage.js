@@ -1499,6 +1499,8 @@ const ArticlePage = () => {
         </div>
 
         {/* Article Body - Full Width Below - Mobile Optimized */}
+        {!isImmersiveMode && <FluidAd className="my-6 max-w-4xl mx-auto" />}
+
         <div className="mt-6 sm:mt-8 prose prose-sm sm:prose-base lg:prose-lg max-w-none text-gray-800 leading-relaxed font-serif">
           {article.content ? (
             <div dangerouslySetInnerHTML={{ __html: article.content }} />
@@ -1578,7 +1580,7 @@ const ArticlePage = () => {
         </div>
       </div>
 
-      <FluidAd className="my-8" />
+      {!isImmersiveMode && <FluidAd className="my-8" />}
     </div>
     </Suspense>
   );

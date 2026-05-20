@@ -242,7 +242,12 @@ const HomePage = () => {
               </section>
             )}
 
-
+            {/* AD PLACEMENT - Between Hero and Feed */}
+            {!loading && !error && (
+              <div className="max-w-7xl mx-auto px-4 mb-8 sm:mb-12">
+                <FluidAd className="my-0" />
+              </div>
+            )}
 
             {/* 4. MAIN FEED - Clean Grid */}
             {!loading && !error && (
