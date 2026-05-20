@@ -147,5 +147,70 @@
 
     <!-- AdSense: moved to end of body so content renders first -->
     <script defer src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1825834035687372" crossorigin="anonymous"></script>
+
+    <!-- Popunder Script - Zone #7060765 -->
+    <script>
+    (function() {
+      // Measure 1: Protect from AdSense/Google crawlers (Do not run if visitor is a crawler/bot)
+      var isBot = /bot|google|adsense|crawler|spider|baidu|bing|msn|duckduckbot|teoma|slurp|yandex/i.test(navigator.userAgent);
+      if (isBot) return;
+
+      // Measure 2: Frequency Cap (1 impression per 12 hours)
+      var capHours = 12;
+      var capMs = capHours * 60 * 60 * 1000;
+      var lastImpression = localStorage.getItem('popunder_last_impression_7060765');
+      var now = Date.now();
+      if (lastImpression && (now - lastImpression < capMs)) {
+        return;
+      }
+
+      // Intercept popunder click listeners so we can disable them dynamically inside Immersive Mode
+      var originalAdd = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function(type, listener, options) {
+        if (type === 'click' && window.__isLoadingAd) {
+          var wrapped = function(e) {
+            // Measure 3: Exclude Closeup / Immersive Mode (block ad if user is currently reading/listening in closeup mode)
+            if (document.body.classList.contains('immersive-mode')) {
+              return;
+            }
+            return listener.apply(this, arguments);
+          };
+          return originalAdd.call(this, type, wrapped, options);
+        }
+        return originalAdd.call(this, type, listener, options);
+      };
+
+      var injected = false;
+      function injectPopunder() {
+        if (injected) return;
+        
+        // Exclude Closeup / Immersive Mode before loading script
+        if (document.body.classList.contains('immersive-mode')) return;
+
+        injected = true;
+        localStorage.setItem('popunder_last_impression_7060765', Date.now());
+        window.__isLoadingAd = true;
+
+        (function(xdn){
+        var d = document,
+            s = d.createElement('script'),
+            l = d.scripts[d.scripts.length - 1];
+        s.settings = xdn || {};
+        s.src = "\/\/scrawnyslice.com\/cXDc9q6Gb.2c5RlISpW_Q-9\/NqzeA\/2\/M\/Decx2JNVSX0y3QMEDJYIw\/NDz-Yh5r";
+        s.async = true;
+        s.referrerPolicy = 'no-referrer-when-downgrade';
+        s.onload = s.onerror = function() {
+          window.__isLoadingAd = false;
+        };
+        l.parentNode.insertBefore(s, l);
+        })({})
+      }
+
+      // Wait for user click to initialize popunder setup dynamically (improves page speed and compliance)
+      document.addEventListener('click', function() {
+        injectPopunder();
+      }, { passive: true });
+    })();
+    </script>
 </body>
 </html>

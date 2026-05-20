@@ -58,6 +58,14 @@ const ArticlePage = () => {
     if (isImmersiveMode && commentaryScrollRef.current) {
       commentaryScrollRef.current.scrollTop = 0;
     }
+    if (isImmersiveMode) {
+      document.body.classList.add('immersive-mode');
+    } else {
+      document.body.classList.remove('immersive-mode');
+    }
+    return () => {
+      document.body.classList.remove('immersive-mode');
+    };
   }, [isImmersiveMode]);
 
   // Refs for auto-scroll functionality
