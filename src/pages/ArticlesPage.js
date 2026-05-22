@@ -7,7 +7,8 @@ import TrendingTopics from '../components/TrendingTopics';
 import FluidAd from '../components/FluidAd';
 import Header from '../components/Header';
 import ReelsSidebar from '../components/ReelsSidebar';
-import { Search, Loader2, Newspaper } from 'lucide-react';
+import SkeletonNewsCard from '../components/SkeletonNewsCard';
+import { Search, Newspaper } from 'lucide-react';
 
 const ArticlesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -239,8 +240,10 @@ const ArticlesPage = () => {
 
           {/* Loading state */}
           {loading && (
-            <div className="flex justify-center my-12">
-              <Loader2 size={48} className="text-blue-600 animate-spin" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
+              {Array(8).fill(null).map((_, index) => (
+                <SkeletonNewsCard key={index} />
+              ))}
             </div>
           )}
 

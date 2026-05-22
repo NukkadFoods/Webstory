@@ -4,12 +4,12 @@ import { getTopStories } from '../services/storyService';
 import { getWallStreetArticles } from '../services/wallStreetService';
 import { getEntertainmentArticles } from '../services/entertainmentService';
 import { getFinanceArticles } from '../services/financeService';
-import NewsCard from '../components/NewsCard';
 import NewsGrid from '../components/NewsGrid';
 import ReelsSidebar from '../components/ReelsSidebar';
 import Header from '../components/Header';
-import FluidAd from '../components/FluidAd';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, ArrowDown } from 'lucide-react';
+import useLoadMore from '../hooks/useLoadMore';
+import SkeletonHero from '../components/SkeletonHero';
 
 const CategoryPage = () => {
   const { category } = useParams();
@@ -134,6 +134,9 @@ const CategoryPage = () => {
   // Split articles into hero and feed
   const heroArticle = articles[0];
   const feedArticles = articles.slice(1);
+  
+  // Use load more hook to slice feeds (e.g. 200 items) into high-performance rendering chunks (initially 8 items, then +4 at a time)
+  const { visibleArticles, hasMore, loading: loadMoreLoading, loadMore } = useLoadMore(feedArticles, 8);
 
   return (
     <div className="category-page min-h-screen bg-gray-50">
@@ -151,10 +154,18 @@ const CategoryPage = () => {
           </div>
 
       {loading && (
-        <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
-          <Loader2 size={48} className="text-blue-600/50 animate-spin" />
-          <p className="text-gray-400 font-medium animate-pulse">Loading {displayName}...</p>
-        </div>
+        <>
+          <SkeletonHero />
+          <section>
+            <div className="flex items-end justify-between mb-4 sm:mb-6 border-b border-gray-100 pb-3 sm:pb-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Latest in {displayName}</h2>
+                <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">Stay updated with the latest stories</p>
+              </div>
+            </div>
+            <NewsGrid loading={true} />
+          </section>
+        </>
       )}
 
       {error && (
@@ -202,10 +213,33 @@ const CategoryPage = () => {
               </div>
 
               <NewsGrid
-                articles={feedArticles}
+                articles={visibleArticles}
                 loading={false}
                 error={null}
               />
+
+              {/* Load More Button - Mobile Optimized */}
+              {hasMore && (
+                <div className="mt-8 sm:mt-12 md:mt-16 flex justify-center">
+                  <button
+                    onClick={loadMore}
+                    disabled={loadMoreLoading}
+                    className="group relative px-6 sm:px-8 py-3 sm:py-3.5 bg-white border border-gray-200 text-gray-600 font-medium rounded-full hover:border-blue-500 hover:text-blue-600 active:bg-gray-50 transition-all shadow-sm hover:shadow-lg sm:hover:-translate-y-0.5 text-sm sm:text-base touch-manipulation"
+                  >
+                    <span className="flex items-center gap-2">
+                      {loadMoreLoading ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" /> Loading...
+                        </>
+                      ) : (
+                        <>
+                          Load More <ArrowDown size={16} className="group-hover:translate-y-1 transition-transform" />
+                        </>
+                      )}
+                    </span>
+                  </button>
+                </div>
+              )}
             </section>
           )}
 

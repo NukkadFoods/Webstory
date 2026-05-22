@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getArticleById } from '../services/articleService';
 
 const NewsCard = ({ article, id, title, abstract, byline, published_date, image, section, uri, url, category, source, date }) => {
   const [imageError, setImageError] = useState(false);
@@ -117,9 +118,19 @@ const NewsCard = ({ article, id, title, abstract, byline, published_date, image,
   const articleIdentifier = getArticleIdentifier();
   const imageOptions = getImageOptions();
 
+  const handlePrefetch = () => {
+    if (articleIdentifier && articleIdentifier !== 'article') {
+      getArticleById(articleIdentifier).catch(err => {
+        console.warn('Prefetch failed silently for article:', articleIdentifier, err);
+      });
+    }
+  };
+
   return (
     <Link
       to={`/article/${articleIdentifier}`}
+      onMouseEnter={handlePrefetch}
+      onTouchStart={handlePrefetch}
       className="group block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 h-full touch-manipulation news-card"
     >
       {/* Image Container - Taller on mobile like hero */}

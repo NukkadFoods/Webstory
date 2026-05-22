@@ -22,11 +22,19 @@ function RouteHandler({ onLocationChange }) {
   useEffect(() => {
     // Reset ads when route changes to prevent conflicts
     adSenseManager.resetAds();
+    
+    // Trigger Google Analytics Page View on Route change
+    if (window.gtag) {
+      window.gtag('config', 'G-LK5YSTVD3Y', {
+        page_path: location.pathname + location.search
+      });
+    }
+
     // Notify parent of location change
     if (onLocationChange) {
       onLocationChange(location.pathname);
     }
-  }, [location.pathname, onLocationChange]);
+  }, [location.pathname, location.search, onLocationChange]);
 
   return (
     <Suspense fallback={null}>
@@ -44,7 +52,7 @@ function RouteHandler({ onLocationChange }) {
 }
 
 function App() {
-  const [currentPath, setCurrentPath] = React.useState('/');
+  const [, setCurrentPath] = React.useState('/');
   
   // Simple app initialization
   useEffect(() => {

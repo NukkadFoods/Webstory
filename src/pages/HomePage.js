@@ -7,6 +7,8 @@ import FluidAd from '../components/FluidAd';
 import Header from '../components/Header';
 import ReelsSidebar from '../components/ReelsSidebar';
 import NewsletterPopup from '../components/NewsletterPopup';
+import SkeletonTrending from '../components/SkeletonTrending';
+import SkeletonHero from '../components/SkeletonHero';
 
 // Icons
 import { Loader2, ArrowDown, Bot, Zap, TrendingUp, Globe } from 'lucide-react';
@@ -138,10 +140,19 @@ const HomePage = () => {
 
             {/* Loading State */}
             {loading && (
-              <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
-                <Loader2 size={48} className="text-blue-600/50 animate-spin" />
-                <p className="text-gray-400 font-medium animate-pulse">Curating your briefing...</p>
-              </div>
+              <>
+                <SkeletonTrending />
+                <SkeletonHero />
+                <section>
+                  <div className="flex items-end justify-between mb-4 sm:mb-6 border-b border-gray-100 pb-3 sm:pb-4">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Latest Feed</h2>
+                      <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">Curating stories for you</p>
+                    </div>
+                  </div>
+                  <NewsGrid loading={true} />
+                </section>
+              </>
             )}
 
             {/* Error State */}

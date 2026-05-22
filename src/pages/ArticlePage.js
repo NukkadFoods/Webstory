@@ -1,24 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { getArticleById } from '../services/articleService';
 import { getWallStreetArticleByUrl } from '../services/wallStreetService';
-import { Clock, User, Tag, ArrowLeft, Share2, Bookmark, AlertTriangle, Zap, TrendingUp, Bot, Globe, Search, Play, VolumeX, Twitter, Facebook } from 'lucide-react';
+import { Clock, Share2, Bookmark, Zap, Bot, Twitter, Facebook } from 'lucide-react';
 import Header from '../components/Header';
 import FluidAd from '../components/FluidAd';
+import browserCache from '../services/browserCache';
 
 // Lazy load heavy components — they load after article content renders
 const AudioPlayer = React.lazy(() => import('../components/AudioPlayer'));
 const ReelsSidebar = React.lazy(() => import('../components/ReelsSidebar'));
-const RelatedArticles = React.lazy(() => import('../components/RelatedArticles'));
-
 const ArticlePage = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookmarked, setBookmarked] = useState(false);
-  const [isWallStreetArticle, setIsWallStreetArticle] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [relatedArticles, setRelatedArticles] = useState([]);
   const [displayedCommentary, setDisplayedCommentary] = useState('');
@@ -175,15 +172,6 @@ const ArticlePage = () => {
     };
   }, [audioProgress.isPlaying]);
 
-  // Categories for header navigation
-  const categories = [
-    { id: 'home', name: 'Top Stories', icon: Zap },
-    { id: 'business', name: 'Business', icon: TrendingUp },
-    { id: 'technology', name: 'Tech', icon: Bot },
-    { id: 'finance', name: 'Markets', icon: TrendingUp },
-    { id: 'world', name: 'World', icon: Globe },
-    { id: 'politics', name: 'Politics', icon: null },
-  ];
 
   // Track scroll progress
   useEffect(() => {
@@ -225,8 +213,18 @@ const ArticlePage = () => {
   }, [article?.section, article?.id]);
 
   useEffect(() => {
+    let pollInterval = null;
+
     const fetchArticle = async () => {
-      setLoading(true);
+      // Synchronously check local browser cache for instant load
+      const cached = browserCache.get(`article:${id}`);
+      if (cached && cached.aiCommentary) {
+        console.log('⚡ Synchronous browser cache hit for article details:', id);
+        setArticle(cached);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
       setError(null);
 
       try {
@@ -235,7 +233,6 @@ const ArticlePage = () => {
         // Check if this is a Wall Street Journal URL
         if (id.includes('wsj.com')) {
           console.log('Detected Wall Street Journal article');
-          setIsWallStreetArticle(true);
           const data = await getWallStreetArticleByUrl(id);
 
           if (!data || data.isError) {
@@ -266,7 +263,7 @@ const ArticlePage = () => {
             let pollCount = 0;
             const maxPolls = 15; // 30 seconds total
 
-            const pollInterval = setInterval(async () => {
+            pollInterval = setInterval(async () => {
               pollCount++;
 
               try {
@@ -297,32 +294,6 @@ const ArticlePage = () => {
                 }
               }
             }, 2000);
-
-            // Store interval ID for cleanup
-            return () => clearInterval(pollInterval);
-          }
-        }
-
-        // Set document title to article title
-        if (article?.title) {
-          document.title = `${article.title} | USDaily24`;
-        }
-
-        // Commentary generation is now handled above during article fetch
-        // Removed duplicate commentary call to prevent unnecessary API requests
-
-        // Store this article in sessionStorage for quicker access later
-        if (article && article.id) {
-          try {
-            const recentArticles = JSON.parse(sessionStorage.getItem('recentArticles') || '[]');
-            // Only add if not already in the list
-            if (!recentArticles.some(a => a && a.id === article.id)) {
-              recentArticles.unshift(article);
-              // Keep only the last 10 articles
-              sessionStorage.setItem('recentArticles', JSON.stringify(recentArticles.slice(0, 10)));
-            }
-          } catch (storageErr) {
-            console.error('Error storing article in session storage:', storageErr);
           }
         }
       } catch (err) {
@@ -336,12 +307,32 @@ const ArticlePage = () => {
 
     fetchArticle();
 
-    // Reset title when component unmounts
+    // Reset title when component unmounts and clear polling interval if active
     return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
       document.title = 'USDaily24';
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Set document title and session storage when article loads/changes
+  useEffect(() => {
+    if (article && article.title) {
+      document.title = `${article.title} | USDaily24`;
+
+      try {
+        const recentArticles = JSON.parse(sessionStorage.getItem('recentArticles') || '[]');
+        if (!recentArticles.some(a => a && a.id === article.id)) {
+          const updatedRecent = [article, ...recentArticles].slice(0, 10);
+          sessionStorage.setItem('recentArticles', JSON.stringify(updatedRecent));
+        }
+      } catch (storageErr) {
+        console.error('Error storing article in session storage:', storageErr);
+      }
+    }
+  }, [article]);
 
   // Inject JSON-LD Schema for SEO (NewsArticle + Speakable)
   useEffect(() => {
@@ -463,25 +454,6 @@ const ArticlePage = () => {
     };
   }, [article?.aiCommentary, audioProgress.isPlaying, audioSection]);
 
-  // Format the date to be more readable
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
-
-  // Format full publication date with time
-  const formatPubDate = (dateString) => {
-    if (!dateString) return '';
-    const options = {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric'
-    };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
 
   // Handle bookmark
   const handleBookmark = () => {
@@ -506,7 +478,108 @@ const ArticlePage = () => {
     }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><Zap size={32} className="text-blue-600 animate-pulse" /></div>;
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-screen font-sans">
+        <Header />
+        
+        <main className="w-full px-3 sm:px-4 py-3 sm:py-4">
+          {/* Title Placeholder - Desktop Only */}
+          <div className="hidden sm:block mb-4 max-w-7xl mx-auto">
+            <div className="flex gap-2 mb-3">
+              <div className="bg-blue-100 animate-pulse h-6 w-20 rounded-md" />
+              <div className="bg-gray-200 animate-pulse h-6 w-32 rounded-md" />
+            </div>
+            <div className="bg-gray-200 animate-pulse h-10 w-4/5 rounded-lg mb-2" />
+            <div className="bg-gray-200 animate-pulse h-10 w-2/3 rounded-lg" />
+          </div>
+
+          {/* Main Layout Split */}
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[60%_40%] gap-4 lg:gap-5">
+            
+            {/* Left Side: Large Image Placeholder */}
+            <div className="w-full">
+              <div className="aspect-[4/5] sm:aspect-auto sm:h-[70vh] lg:h-[calc(100vh-160px)] w-full rounded-xl bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.5s_infinite] -translate-x-full" />
+                <span className="text-5xl opacity-20">📰</span>
+              </div>
+            </div>
+
+            {/* Right Side: Teleprompter/Analysis Box Placeholder */}
+            <div className="w-full">
+              <div className="bg-white border-2 border-gray-100 rounded-xl overflow-hidden shadow-md">
+                {/* Analysis Header */}
+                <div className="bg-gradient-to-r from-blue-100 to-indigo-100 px-4 py-4 flex justify-between items-center animate-pulse">
+                  <div className="h-6 w-36 bg-blue-200 rounded-md" />
+                  <div className="h-6 w-8 bg-blue-200 rounded-full" />
+                </div>
+
+                {/* Analysis Text Blocks */}
+                <div className="p-4 sm:p-5 space-y-6">
+                  {/* Key Points */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-5 w-5 bg-yellow-100 rounded-full animate-pulse" />
+                      <div className="h-4 w-24 bg-gray-200 rounded-md animate-pulse" />
+                    </div>
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-4 w-full bg-gray-100 rounded" />
+                      <div className="h-4 w-11/12 bg-gray-100 rounded" />
+                      <div className="h-4 w-4/5 bg-gray-100 rounded" />
+                    </div>
+                  </div>
+
+                  {/* Impact Analysis */}
+                  <div className="pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-5 w-5 bg-blue-100 rounded-full animate-pulse" />
+                      <div className="h-4 w-28 bg-gray-200 rounded-md animate-pulse" />
+                    </div>
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-4 w-11/12 bg-gray-100 rounded" />
+                      <div className="h-4 w-full bg-gray-100 rounded" />
+                      <div className="h-4 w-3/4 bg-gray-100 rounded" />
+                    </div>
+                  </div>
+
+                  {/* Future Outlook */}
+                  <div className="pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-5 w-5 bg-purple-100 rounded-full animate-pulse" />
+                      <div className="h-4 w-24 bg-gray-200 rounded-md animate-pulse" />
+                    </div>
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-4 w-full bg-gray-100 rounded" />
+                      <div className="h-4 w-5/6 bg-gray-100 rounded" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Related Articles Skeleton Section */}
+          <div className="max-w-7xl mx-auto mt-8 sm:mt-12 border-t border-gray-200 pt-6 sm:pt-8">
+            <div className="h-7 w-48 bg-gray-200 rounded-md mb-4 sm:mb-6 animate-pulse" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+              {Array(4).fill(null).map((_, index) => (
+                <div key={index} className="w-full">
+                  <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 animate-pulse">
+                    <div className="aspect-[4/3] w-full bg-gray-200 animate-pulse" />
+                    <div className="p-4 space-y-2">
+                      <div className="h-3 w-16 bg-blue-100 rounded animate-pulse" />
+                      <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                      <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
   if (error) return <div className="text-center py-20 px-4 text-red-600">{error}</div>;
   if (!article) return <div className="text-center py-20 px-4">Article not found</div>;
 
