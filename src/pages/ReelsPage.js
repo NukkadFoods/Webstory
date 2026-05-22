@@ -7,18 +7,15 @@ const ReelsPage = () => {
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const loadingMore = false;
+  const hasMore = true;
   const containerRef = useRef(null);
   const videoRefs = useRef({});
   const touchStartY = useRef(0);
   const adInitialized = useRef(new Set());
-  const nextPageToken = useRef(null);
   const isManualScroll = useRef(false);
 
   const AD_FREQUENCY = 5; // Show ad every 5 videos
-  const INITIAL_LOAD = 19; // Load 19 videos initially
-  const LOAD_MORE_THRESHOLD = 15; // When user reaches video 15, load more
 
   useEffect(() => {
     fetchVideos();
@@ -87,7 +84,7 @@ const ReelsPage = () => {
     });
 
     return () => observer.disconnect();
-  }, [videos.length]);
+  }, [videos.length, currentIndex]);
 
   const initializeAdsForRange = (startIndex, endIndex) => {
     for (let i = startIndex; i <= endIndex; i++) {

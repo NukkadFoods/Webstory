@@ -35,6 +35,7 @@ const NewsletterPopup = () => {
                 <button
                     onClick={handleClose}
                     className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"
+                    aria-label="Close newsletter popup"
                 >
                     <X size={24} />
                 </button>

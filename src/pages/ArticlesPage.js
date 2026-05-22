@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { searchArticles, getArticles } from '../services/articleService';
 import { mockCategories } from '../services/mockData';
 import NewsCard from '../components/NewsCard';
-import TrendingTopics from '../components/TrendingTopics';
 import FluidAd from '../components/FluidAd';
 import Header from '../components/Header';
 import ReelsSidebar from '../components/ReelsSidebar';
@@ -14,7 +13,7 @@ const ArticlesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error] = useState(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [page, setPage] = useState(1);

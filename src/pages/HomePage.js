@@ -11,31 +11,20 @@ import SkeletonTrending from '../components/SkeletonTrending';
 import SkeletonHero from '../components/SkeletonHero';
 
 // Icons
-import { Loader2, ArrowDown, Bot, Zap, TrendingUp, Globe } from 'lucide-react';
+import { Loader2, ArrowDown } from 'lucide-react';
 
 const HomePage = () => {
   // --- State Management ---
   const [filteredArticles, setFilteredArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeCategory, setActiveCategory] = useState('home');
-  const [isSearchMode, setIsSearchMode] = useState(false);
+  const activeCategory = 'home';
+  const isSearchMode = false;
   const [showReels, setShowReels] = useState(false);
 
   // --- Load More Hook (Start with 9 items to fill grid nicely) ---
   const { visibleArticles, hasMore, loading: loadMoreLoading, loadMore } = useLoadMore(filteredArticles, 9);
 
-  // --- Configuration ---
-  const categories = [
-    { id: 'home', name: 'Top Stories', icon: Zap },
-    { id: 'politics', name: 'Politics', icon: null },
-    { id: 'business', name: 'Business', icon: TrendingUp },
-    { id: 'technology', name: 'Tech', icon: Bot },
-    { id: 'world', name: 'World', icon: Globe },
-    { id: 'entertainment', name: 'Pop Culture', icon: null },
-    { id: 'health', name: 'Health', icon: null },
-    { id: 'sports', name: 'Sports', icon: null },
-  ];
 
   // --- Data Fetching ---
   useEffect(() => {
@@ -68,12 +57,6 @@ const HomePage = () => {
     fetchArticles();
   }, [activeCategory, isSearchMode]);
 
-  // --- Helpers ---
-  const handleCategoryChange = (catId) => {
-    setActiveCategory(catId);
-    setIsSearchMode(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   // Generate clean, SEO-friendly article link
   const getArticleLink = (article) => {
@@ -208,9 +191,9 @@ const HomePage = () => {
                           <span className="text-[10px] sm:text-xs font-bold text-blue-300 uppercase tracking-wide">
                             {story.section}
                           </span>
-                          <h4 className="font-bold text-white text-sm sm:text-base leading-snug line-clamp-2 mt-1 group-hover:text-blue-200 transition-colors">
+                          <h3 className="font-bold text-white text-sm sm:text-base leading-snug line-clamp-2 mt-1 group-hover:text-blue-200 transition-colors">
                             {story.title}
-                          </h4>
+                          </h3>
                         </div>
                       </div>
                     </Link>

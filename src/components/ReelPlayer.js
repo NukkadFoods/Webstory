@@ -59,28 +59,6 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
         }
     }, [currentIndex, reels.length, hasMore, isOpen, onLoadMore]);
 
-    // Keyboard navigation
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const handleKeyDown = (e) => {
-            if (e.key === 'ArrowUp' || e.key === 'k') {
-                goToPrevious();
-            } else if (e.key === 'ArrowDown' || e.key === 'j') {
-                goToNext();
-            } else if (e.key === 'Escape') {
-                onClose();
-            } else if (e.key === 'm') {
-                setIsMuted(prev => !prev);
-            } else if (e.key === ' ') {
-                setIsPaused(prev => !prev);
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, currentIndex]);
-
     // Navigation Logic with animation
     const goToNext = useCallback(() => {
         const now = Date.now();
@@ -118,6 +96,29 @@ const ReelPlayer = ({ reels, initialIndex = 0, isOpen, onClose, onLoadMore, hasM
             }, 150);
         }
     }, [currentIndex, isTransitioning]);
+
+    // Keyboard navigation
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'k') {
+                goToPrevious();
+            } else if (e.key === 'ArrowDown' || e.key === 'j') {
+                goToNext();
+            } else if (e.key === 'Escape') {
+                onClose();
+            } else if (e.key === 'm') {
+                setIsMuted(prev => !prev);
+            } else if (e.key === ' ') {
+                setIsPaused(prev => !prev);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, currentIndex, goToPrevious, goToNext, onClose]);
+
 
     // --- Touch Handlers ---
     const handleTouchStart = (e) => {

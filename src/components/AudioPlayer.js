@@ -537,7 +537,7 @@ const AudioPlayer = ({ commentary, title, onSectionChange, onProgressUpdate }) =
                 await playAudio();
             }
         }
-    }, [commentary, title, isPlaying, preloadStatus, playAudio]);
+    }, [commentary, title, preloadStatus, playAudio]);
 
     // ============ HANDLE SEEK ============
     const handleSeek = useCallback((e) => {

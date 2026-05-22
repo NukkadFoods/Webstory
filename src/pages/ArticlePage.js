@@ -10,6 +10,19 @@ import browserCache from '../services/browserCache';
 // Lazy load heavy components — they load after article content renders
 const AudioPlayer = React.lazy(() => import('../components/AudioPlayer'));
 const ReelsSidebar = React.lazy(() => import('../components/ReelsSidebar'));
+
+const getHighResImage = (article) => {
+  if (!article) return '';
+  if (article.multimedia && article.multimedia.length > 0) {
+    const superJumbo = article.multimedia.find(m => m.format === 'superJumbo');
+    if (superJumbo && superJumbo.url) return superJumbo.url;
+    // fallback to first multimedia url
+    const fallback = article.multimedia[0];
+    if (fallback && fallback.url) return fallback.url;
+  }
+  return article.imageUrl || '';
+};
+
 const ArticlePage = () => {
   const { id } = useParams();
   const [article, setArticle] = useState(null);
@@ -628,9 +641,10 @@ const ArticlePage = () => {
         <div className="fixed inset-0 z-50 bg-black">
           {/* Full-screen background image */}
           <img
-            src={article.imageUrl || article.multimedia?.[0]?.url}
+            src={getHighResImage(article)}
             alt={article.title}
             className="absolute inset-0 w-full h-full object-cover"
+            fetchPriority="high"
           />
 
           {/* Subtle gradient for better text readability */}
@@ -666,6 +680,7 @@ const ArticlePage = () => {
               window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: 'exit-button' } }));
             }}
             className="absolute top-4 left-4 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white text-lg font-bold shadow-lg border border-white/30 hover:bg-white/30 transition-all z-20"
+            aria-label="Exit immersive mode"
           >
             ✕
           </button>
@@ -884,9 +899,10 @@ const ArticlePage = () => {
           {/* Fixed Image Section - Top 55% of screen */}
           <div className="relative h-[55vh] flex-shrink-0">
             <img
-              src={article.imageUrl || article.multimedia?.[0]?.url}
+              src={getHighResImage(article)}
               alt={article.title}
               className="w-full h-full object-cover"
+              fetchPriority="high"
             />
             {/* Subtle gradient overlay for readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
@@ -918,6 +934,7 @@ const ArticlePage = () => {
                 window.dispatchEvent(new CustomEvent('stopAllMedia', { detail: { source: 'exit-button' } }));
               }}
               className="absolute top-4 right-4 w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg border border-white/30"
+              aria-label="Exit immersive mode"
             >
               ✕
             </button>
@@ -1146,9 +1163,10 @@ const ArticlePage = () => {
         <div className="block sm:hidden mb-3">
           <div className="relative aspect-[4/5] w-full rounded-xl overflow-hidden shadow-lg bg-gray-900">
             <img
-              src={article.imageUrl || article.multimedia?.[0]?.url}
+              src={getHighResImage(article)}
               alt={article.title}
               className="w-full h-full object-cover"
+              fetchPriority="high"
             />
             {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
@@ -1181,11 +1199,11 @@ const ArticlePage = () => {
               {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2.5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-white font-bold text-sm flex items-center gap-1.5">
+                  <h2 className="text-white font-bold text-sm flex items-center gap-1.5">
                     <Zap size={14} className="text-yellow-300" />
                     <span>FOREXYY INSIGHT</span>
                     {isTyping && <span className="text-[10px] text-blue-200 animate-pulse ml-1">✍️</span>}
-                  </h3>
+                  </h2>
                   <Bot size={14} className="text-white/70" />
                 </div>
               </div>
@@ -1224,10 +1242,10 @@ const ArticlePage = () => {
 
                   return sections.map((section, idx) => (
                     <div key={idx} className={`${idx > 0 ? 'mt-3 pt-3 border-t border-gray-200' : ''}`}>
-                      <h4 className="font-bold text-blue-700 text-xs uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                      <h3 className="font-bold text-blue-700 text-xs uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                         <span>{section.icon}</span>
                         {section.title}
-                      </h4>
+                      </h3>
                       <p className="text-gray-600 text-sm leading-relaxed">{section.content}</p>
                     </div>
                   ));
@@ -1254,9 +1272,10 @@ const ArticlePage = () => {
             {/* Large Image Container with Audio Player Inside - matches commentary height */}
             <div className="relative rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-900 w-full h-[70vh] lg:h-[calc(100vh-160px)]">
               <img
-                src={article.imageUrl || article.multimedia?.[0]?.url}
+                src={getHighResImage(article)}
                 alt={article.title}
                 className="w-full h-full object-cover"
+                fetchPriority="high"
               />
               {/* Gradient overlay for better player visibility */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
@@ -1309,12 +1328,12 @@ const ArticlePage = () => {
                 {/* Compact Header - Mobile Optimized */}
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 sm:px-4 py-2.5 sm:py-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-white font-bold text-sm sm:text-base flex items-center gap-1.5 sm:gap-2">
+                    <h2 className="text-white font-bold text-sm sm:text-base flex items-center gap-1.5 sm:gap-2">
                       <Zap size={14} className="text-yellow-300" />
                       <span className="hidden xs:inline">FOREXYY INSIGHT</span>
                       <span className="inline xs:hidden">INSIGHT</span>
                       {isTyping && <span className="text-[10px] sm:text-xs text-blue-200 animate-pulse ml-1 sm:ml-2">✍️</span>}
-                    </h3>
+                    </h2>
                     <Bot size={16} className="text-white/70" />
                   </div>
                 </div>
@@ -1388,7 +1407,7 @@ const ArticlePage = () => {
                               ? 'bg-blue-100'
                               : 'bg-gray-100'
                             }`}>
-                            <h4 className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 ${isActiveSection ? 'text-white' : 'text-blue-900'
+                            <h3 className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 ${isActiveSection ? 'text-white' : 'text-blue-900'
                               }`}>
                               <span className="text-base sm:text-lg">{section.icon}</span>
                               <span>{section.title}</span>
@@ -1399,7 +1418,7 @@ const ArticlePage = () => {
                                   <span className="w-0.5 h-2 bg-white/80 rounded animate-pulse delay-150"></span>
                                 </span>
                               )}
-                            </h4>
+                            </h3>
                           </div>
 
                           {/* Section Content - Teleprompter Style - Mobile Optimized */}
@@ -1605,18 +1624,18 @@ const ArticlePage = () => {
             <Bookmark size={16} /> {bookmarked ? 'Saved' : 'Save'}
           </button>
           <div className="ml-auto flex gap-2">
-            <button className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full active:bg-blue-100 touch-manipulation"><Twitter size={16} /></button>
-            <button className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full active:bg-blue-100 touch-manipulation"><Facebook size={16} /></button>
+            <button className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full active:bg-blue-100 touch-manipulation" aria-label="Share on Twitter"><Twitter size={16} /></button>
+            <button className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full active:bg-blue-100 touch-manipulation" aria-label="Share on Facebook"><Facebook size={16} /></button>
           </div>
         </div>
 
         {/* RELATED ARTICLES - Mobile Optimized */}
         {relatedArticles.length > 0 && (
           <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200">
-            <h3 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2 mb-3 sm:mb-4">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2 mb-3 sm:mb-4">
               <span className="w-1 h-4 sm:h-5 bg-blue-600 rounded-full"></span>
               Related Articles
-            </h3>
+            </h2>
             <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x -mx-3 px-3 sm:mx-0 sm:px-0">
               {relatedArticles.map((relArticle, index) => (
                 <Link
@@ -1631,7 +1650,7 @@ const ArticlePage = () => {
                     )}
                     <div className="p-2.5 sm:p-3">
                       <span className="text-[10px] sm:text-xs font-semibold text-blue-600 uppercase">{relArticle.section}</span>
-                      <h4 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-blue-600 line-clamp-2 mt-1">{relArticle.title}</h4>
+                      <h3 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-blue-600 line-clamp-2 mt-1">{relArticle.title}</h3>
                     </div>
                   </div>
                 </Link>

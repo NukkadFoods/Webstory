@@ -1,5 +1,5 @@
 // Frontend article service - uses API calls to backend with fallback support
-import apiConfig, { makeAPIRequest, getAPIBaseURL } from './apiConfig';
+import { makeAPIRequest } from './apiConfig';
 import browserCache from './browserCache';
 
 // Legacy support - will be dynamically set by apiConfig
@@ -232,110 +232,6 @@ export const deleteArticleByUrl = async (url) => {
   }
 };
 
-// Forexyy Newsletter AI Reporter Pool
-const aiReporters = [
-  // Politics & Government
-  { name: 'James Anderson', title: 'Senior Political Analyst', location: 'Forexyy Newsletter, Washington D.C.', section: 'politics', expertise: 'Political Analysis & Government Affairs' },
-  { name: 'Patricia Hayes', title: 'Congressional Correspondent', location: 'Forexyy Newsletter, Washington D.C.', section: 'politics', expertise: 'Congressional Coverage & Policy' },
-  
-  // Business & Finance
-  { name: 'Sarah Williams', title: 'Senior Financial Correspondent', location: 'Forexyy Newsletter, New York', section: 'business', expertise: 'Market Analysis & Economic Trends' },
-  { name: 'Robert Chen', title: 'Wall Street Reporter', location: 'Forexyy Newsletter, New York', section: 'finance', expertise: 'Stock Market & Investment Banking' },
-  
-  // Technology
-  { name: 'Michael Chen', title: 'Chief Technology Reporter', location: 'Forexyy Newsletter, San Francisco', section: 'technology', expertise: 'Tech Innovation & Silicon Valley' },
-  { name: 'Lisa Park', title: 'Digital Innovation Correspondent', location: 'Forexyy Newsletter, Austin', section: 'technology', expertise: 'Startups & Emerging Tech' },
-  
-  // Entertainment & Culture
-  { name: 'Alexandra Rivers', title: 'Senior Entertainment Reporter', location: 'Forexyy Newsletter, Los Angeles', section: 'entertainment', expertise: 'Hollywood & Celebrity News' },
-  { name: 'Elena Rodriguez', title: 'Arts & Culture Correspondent', location: 'Forexyy Newsletter, New York', section: 'arts', expertise: 'Arts, Music & Cultural Events' },
-  
-  // Sports
-  { name: 'Marcus Johnson', title: 'Senior Sports Reporter', location: 'Forexyy Newsletter, Chicago', section: 'sports', expertise: 'Professional Sports & Athletics' },
-  { name: 'Angela Davis', title: 'Sports Correspondent', location: 'Forexyy Newsletter, Los Angeles', section: 'sports', expertise: 'Olympic Sports & College Athletics' },
-  
-  // Health & Science
-  { name: 'Dr. Rachel Martinez', title: 'Health & Science Reporter', location: 'Forexyy Newsletter, Boston', section: 'health', expertise: 'Medical Research & Healthcare Policy' },
-  { name: 'David Kumar', title: 'Science Correspondent', location: 'Forexyy Newsletter, California', section: 'science', expertise: 'Scientific Research & Innovation' },
-  
-  // World News
-  { name: 'Jonathan Wright', title: 'International Correspondent', location: 'Forexyy Newsletter, Global Bureau', section: 'world', expertise: 'International Affairs & Global Events' },
-  { name: 'Sophia Abbas', title: 'Foreign Affairs Reporter', location: 'Forexyy Newsletter, International', section: 'world', expertise: 'Diplomatic Relations & World Politics' },
-  
-  // General/Breaking News
-  { name: 'Emma Thompson', title: 'Breaking News Reporter', location: 'Forexyy Newsletter, National', section: 'general', expertise: 'Breaking News & National Events' },
-  { name: 'Carlos Rodriguez', title: 'National Correspondent', location: 'Forexyy Newsletter, National', section: 'us', expertise: 'National Politics & Social Issues' }
-];
-
-// Function to transform external bylines to our AI reporters
-const transformByline = (byline, section) => {
-  let reporter;
-  
-  // Normalize section name
-  const normalizedSection = (section || 'general').toLowerCase();
-  
-  // Select appropriate reporter based on section with fallbacks
-  const sectionReporters = aiReporters.filter(r => r.section === normalizedSection);
-  
-  if (sectionReporters.length > 0) {
-    // Randomly select from section-specific reporters
-    reporter = sectionReporters[Math.floor(Math.random() * sectionReporters.length)];
-  } else {
-    // Fallback mapping for sections not directly matched
-    switch(normalizedSection) {
-      case 'entertainment':
-      case 'movies':
-      case 'tv':
-        reporter = aiReporters.find(r => r.name === 'Alexandra Rivers');
-        break;
-      case 'technology':
-      case 'tech':
-      case 'startups':
-        reporter = aiReporters.find(r => r.name === 'Michael Chen');
-        break;
-      case 'business':
-      case 'finance':
-      case 'economy':
-      case 'wallstreet':
-        reporter = aiReporters.find(r => r.name === 'Sarah Williams');
-        break;
-      case 'politics':
-      case 'government':
-      case 'election':
-        reporter = aiReporters.find(r => r.name === 'James Anderson');
-        break;
-      case 'sports':
-      case 'athletics':
-        reporter = aiReporters.find(r => r.name === 'Marcus Johnson');
-        break;
-      case 'health':
-      case 'medical':
-      case 'science':
-        reporter = aiReporters.find(r => r.name === 'Dr. Rachel Martinez');
-        break;
-      case 'world':
-      case 'international':
-        reporter = aiReporters.find(r => r.name === 'Jonathan Wright');
-        break;
-      default:
-        // General news reporter
-        reporter = aiReporters.find(r => r.name === 'Emma Thompson');
-    }
-  }
-
-  // Final fallback if no reporter found
-  if (!reporter) {
-    reporter = aiReporters[Math.floor(Math.random() * aiReporters.length)];
-  }
-
-  return {
-    byline: `By ${reporter.name}`,
-    reporter: reporter
-  };
-};
-
-// Get API key from environment variables
-const API_KEY = process.env.REACT_APP_NYT_API_KEY || 'yourkey';
 const isDev = process.env.NODE_ENV === 'development';
 const BASE_URL = isDev ? '' : (process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com');
 
@@ -358,6 +254,7 @@ export const getArticles = async (section = 'all', limit = 20) => {
         } else if (response.status >= 500 && attempt < maxRetries) {
           // Server errors - retry after delay
           console.warn(`Server error ${response.status}, retrying in ${delay}ms...`);
+          // eslint-disable-next-line no-loop-func
           await new Promise(resolve => setTimeout(resolve, delay));
           delay *= 1.5; // Exponential backoff
           continue;
@@ -370,6 +267,7 @@ export const getArticles = async (section = 'all', limit = 20) => {
           throw error;
         }
         console.warn(`Network error on attempt ${attempt}, retrying in ${delay}ms...`, error.message);
+        // eslint-disable-next-line no-loop-func
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= 1.5;
       }
@@ -401,8 +299,6 @@ export const getArticles = async (section = 'all', limit = 20) => {
       `${BASE_URL}/api/articles?category=home&limit=${limit}`, // Fallback to home if specific section fails
     ];
     
-    let lastError;
-    
     for (const url of backendUrls) {
       try {
         const response = await retryFetch(url, {
@@ -427,7 +323,6 @@ export const getArticles = async (section = 'all', limit = 20) => {
         
       } catch (error) {
         console.warn(`Failed to fetch from ${url}:`, error.message);
-        lastError = error;
       }
     }
     

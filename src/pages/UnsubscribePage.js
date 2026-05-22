@@ -9,7 +9,6 @@ const UnsubscribePage = () => {
   const token = searchParams.get('token');
 
   const [status, setStatus] = useState('loading'); // loading, confirm, success, error
-  const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -91,12 +90,6 @@ const UnsubscribePage = () => {
               <p className="text-gray-600 mb-6">
                 Are you sure you want to unsubscribe from the Forexyy Newsletter?
               </p>
-
-              {email && (
-                <div className="bg-gray-100 px-4 py-2 rounded-lg inline-block mb-6 font-mono text-gray-700">
-                  {email}
-                </div>
-              )}
 
               <div className="flex gap-3 justify-center">
                 <button

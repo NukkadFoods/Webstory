@@ -166,9 +166,9 @@ const NewsCard = ({ article, id, title, abstract, byline, published_date, image,
 
         {/* Title overlay on image - more prominent like hero */}
         <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
-          <h2 className="text-white font-bold text-lg sm:text-xl md:text-xl leading-tight line-clamp-3 group-hover:text-blue-200 transition-colors font-serif">
+          <h3 className="text-white font-bold text-lg sm:text-xl md:text-xl leading-tight line-clamp-3 group-hover:text-blue-200 transition-colors font-serif">
             {articleData.title}
-          </h2>
+          </h3>
         </div>
       </div>
     </Link>

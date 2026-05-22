@@ -30,10 +30,12 @@ export const makeAPIRequest = async (endpoint, options = {}) => {
 export const getAPIBaseURL = () => API_BASE_URL;
 
 // For backward compatibility
-export default {
+const apiConfig = {
   getBaseURL: () => API_BASE_URL,
   request: makeAPIRequest,
 };
+
+export default apiConfig;
 
 // No more complex initialization needed
 export const initializeAPI = () => {

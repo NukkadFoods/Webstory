@@ -40,6 +40,7 @@ const ReelsSidebar = ({ horizontal = false }) => {
 
   useEffect(() => {
     fetchYouTubeReels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadMoreReels = () => {

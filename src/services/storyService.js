@@ -20,6 +20,7 @@ export const getTopStories = async (section = 'home') => {
           return response;
         } else if (response.status >= 500 && attempt < maxRetries) {
           console.warn(`⚠️ Server error ${response.status}, retrying in ${delay}ms...`);
+          // eslint-disable-next-line no-loop-func
           await new Promise(resolve => setTimeout(resolve, delay));
           delay *= 1.5;
           continue;
@@ -29,6 +30,7 @@ export const getTopStories = async (section = 'home') => {
       } catch (error) {
         if (attempt === maxRetries) throw error;
         console.warn(`⚠️ Network error on attempt ${attempt}, retrying in ${delay}ms...`, error.message);
+        // eslint-disable-next-line no-loop-func
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= 1.5;
       }
