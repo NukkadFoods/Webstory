@@ -1169,7 +1169,7 @@ const ArticlePage = () => {
               fetchPriority="high"
             />
             {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/85" />
 
             {/* Title overlay on image */}
             <div className="absolute top-4 left-4 right-4">
@@ -1259,7 +1259,7 @@ const ArticlePage = () => {
         <div className="hidden sm:block mb-3 sm:mb-4">
           <div className="flex flex-wrap gap-2 mb-2 sm:mb-3">
             <span className="bg-blue-100 text-blue-800 text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
-            <span className="text-gray-400 text-[10px] sm:text-xs py-1"><Clock size={12} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
+            <span className="text-gray-600 text-[10px] sm:text-xs py-1 flex items-center gap-1"><Clock size={12} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
           </div>
           <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight font-serif">{article.title}</h1>
         </div>

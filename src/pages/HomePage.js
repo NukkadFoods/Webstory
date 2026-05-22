@@ -160,7 +160,7 @@ const HomePage = () => {
                     </span>
                     Trending Now
                   </h2>
-                  <span className="text-[10px] sm:text-xs text-gray-400 font-medium">Live Updates</span>
+                  <span className="text-[10px] sm:text-xs text-gray-600 font-medium">Live Updates</span>
                 </div>
                 <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
                   {trendingArticles.map((story, idx) => (

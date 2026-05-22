@@ -1,0 +1,10 @@
+# Forexyy - AI-Powered News Analysis & Breaking Stories
+
+Forexyy is an advanced economic intelligence and real-time news platform providing high-performance news aggregation, structured expert insights, and interactive AI audio commentary.
+
+## Site Navigation for AI Agents
+
+- [Home Page](https://forexyy.com/) - Live economic updates, trending economic analyses, and breaking news.
+- [Articles Feed](https://forexyy.com/articles) - Exhaustive feed of curated global and regional articles with real-time audio commentary.
+- [Reels Feed](https://forexyy.com/reels) - Immersive vertical video feeds highlighting current micro-insights in economics.
+- [Terms & Conditions](https://forexyy.com/) - Core site guidelines and user agreements.

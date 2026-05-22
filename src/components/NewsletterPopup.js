@@ -34,7 +34,7 @@ const NewsletterPopup = () => {
                 {/* Close Button */}
                 <button
                     onClick={handleClose}
-                    className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"
+                    className="absolute top-3 right-3 text-gray-600 hover:text-gray-800 transition"
                     aria-label="Close newsletter popup"
                 >
                     <X size={24} />
@@ -58,7 +58,7 @@ const NewsletterPopup = () => {
                     <NewsletterSignup />
                 </div>
 
-                <p className="text-xs text-gray-400 text-center mt-4">
+                <p className="text-xs text-gray-600 text-center mt-4">
                     No spam, unsubscribe at any time.
                 </p>
             </div>
