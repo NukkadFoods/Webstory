@@ -27,16 +27,13 @@ class AdSenseManager {
         window.adsbygoogle.push({});
         this.pushedElements.add(element);
         element.dataset.adInitialized = 'true';
-        // console.log('✅ AdSense ad initialized for slot:', slotId);
       } catch (err) {
-        // TagError or already filled
         if (!err.message?.includes('already have ads')) {
           console.error('AdSense push error:', err);
         }
       }
     };
 
-    // Small timeout to allow DOM layout to stabilize
     const timeoutId = setTimeout(pushAd, 150);
     this.pendingTimeouts.set(element, timeoutId);
 
@@ -51,6 +48,14 @@ class AdSenseManager {
       clearTimeout(this.pendingTimeouts.get(element));
       this.pendingTimeouts.delete(element);
     }
+  }
+
+  /**
+   * Reset all pending ads on route navigation
+   */
+  resetAds() {
+    this.pendingTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+    this.pendingTimeouts.clear();
   }
 
   /**
