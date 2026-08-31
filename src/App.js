@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import ErrorBoundary from './components/ErrorBoundary';
 import { adSenseManager } from './utils/adSenseManager';
+import { initializePushNotifications } from './utils/pushNotifications';
 import './App.css';
 
 // Route-level code splitting — each page loads only when navigated to
@@ -60,6 +61,7 @@ function App() {
   useEffect(() => {
     console.log('🚀 Webstory frontend app started');
     console.log('🔧 API URL:', process.env.REACT_APP_API_URL);
+    initializePushNotifications();
   }, []);
 
   return (

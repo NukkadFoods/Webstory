@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail } from 'lucide-react';
+import { X, Mail, Bell } from 'lucide-react';
 import NewsletterSignup from './NewsletterSignup';
+import { subscribeToPushNotifications } from '../utils/pushNotifications';
 
 const NewsletterPopup = () => {
     const [isVisible, setIsVisible] = useState(false);
+    const [pushStatus, setPushStatus] = useState('');
+    const [isPushing, setIsPushing] = useState(false);
 
     useEffect(() => {
         // Check if user has already subscribed or closed the popup recently
@@ -24,6 +27,17 @@ const NewsletterPopup = () => {
         // Remember that user closed it for 24 hours
         const expiry = new Date().getTime() + 24 * 60 * 60 * 1000;
         localStorage.setItem('newsletter_popup_closed', expiry);
+    };
+
+    const handlePushSubscribe = async () => {
+        setIsPushing(true);
+        setPushStatus('');
+        const result = await subscribeToPushNotifications();
+        setPushStatus(result.message);
+        setIsPushing(false);
+        if (result.success) {
+            setTimeout(handleClose, 2000);
+        }
     };
 
     if (!isVisible) return null;
@@ -56,6 +70,23 @@ const NewsletterPopup = () => {
                 {/* Reusing the existing signup form */}
                 <div className="popup-form-wrapper">
                     <NewsletterSignup />
+                </div>
+
+                <div className="mt-6 border-t border-gray-100 pt-4 text-center">
+                    <p className="text-sm text-gray-500 mb-3">Or get instant breaking news alerts on this device</p>
+                    <button
+                        onClick={handlePushSubscribe}
+                        disabled={isPushing}
+                        className="inline-flex items-center justify-center w-full gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium text-sm"
+                    >
+                        <Bell size={18} />
+                        {isPushing ? 'Subscribing...' : 'Enable Push Notifications'}
+                    </button>
+                    {pushStatus && (
+                        <p className={`text-xs mt-2 ${pushStatus.includes('success') || pushStatus.includes('Already') ? 'text-green-600' : 'text-red-600'}`}>
+                            {pushStatus}
+                        </p>
+                    )}
                 </div>
 
                 <p className="text-xs text-gray-600 text-center mt-4">
