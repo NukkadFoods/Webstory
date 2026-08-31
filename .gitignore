@@ -341,3 +341,7 @@ $RECYCLE.BIN/
 *~
 .env
 .DS_Store
+
+# OAuth tokens
+testscript/*_token.json
+testscript/*token*.json

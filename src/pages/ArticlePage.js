@@ -5,6 +5,7 @@ import { getWallStreetArticleByUrl } from '../services/wallStreetService';
 import { Clock, Share2, Bookmark, Zap, Bot, Twitter, Facebook } from 'lucide-react';
 import Header from '../components/Header';
 import FluidAd from '../components/FluidAd';
+import HorizontalAd from '../components/HorizontalAd';
 import browserCache from '../services/browserCache';
 import { trackArticleView } from '../utils/analytics';
 
@@ -1682,6 +1683,7 @@ const ArticlePage = () => {
         </div>
       </div>
 
+      {!isImmersiveMode && <HorizontalAd />}
       {!isImmersiveMode && <FluidAd className="my-8" />}
     </div>
     </Suspense>

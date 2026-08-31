@@ -13,6 +13,7 @@ const SearchPage = React.lazy(() => import('./pages/SearchPage'));
 const ArticlesPage = React.lazy(() => import('./pages/ArticlesPage'));
 const ReelsPage = React.lazy(() => import('./pages/ReelsPage'));
 const UnsubscribePage = React.lazy(() => import('./pages/UnsubscribePage'));
+const AboutPage = React.lazy(() => import('./pages/AboutPage'));
 const Footer = React.lazy(() => import('./components/Footer'));
 
 // Component to handle route changes and reset ads
@@ -46,6 +47,7 @@ function RouteHandler({ onLocationChange }) {
         <Route path="/articles" element={<ArticlesPage />} />
         <Route path="/reels" element={<ReelsPage />} />
         <Route path="/unsubscribe" element={<UnsubscribePage />} />
+        <Route path="/about" element={<AboutPage />} />
       </Routes>
     </Suspense>
   );

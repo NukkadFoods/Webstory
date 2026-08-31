@@ -4,6 +4,7 @@ import { getTopStories } from '../services/storyService';
 import useLoadMore from '../hooks/useLoadMore';
 import NewsGrid from '../components/NewsGrid';
 import FluidAd from '../components/FluidAd';
+import HorizontalAd from '../components/HorizontalAd';
 import Header from '../components/Header';
 import ReelsSidebar from '../components/ReelsSidebar';
 import NewsletterPopup from '../components/NewsletterPopup';
@@ -283,6 +284,13 @@ const HomePage = () => {
                   </div>
                 )}
               </section>
+            )}
+
+            {/* AD PLACEMENT - After Feed Section (high-value below-fold display ad) */}
+            {!loading && !error && (
+              <div className="max-w-7xl mx-auto px-4 mt-8 mb-4">
+                <HorizontalAd />
+              </div>
             )}
         </div>
       </div>
