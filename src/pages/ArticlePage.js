@@ -6,6 +6,7 @@ import { Clock, Share2, Bookmark, Zap, Bot, Twitter, Facebook } from 'lucide-rea
 import Header from '../components/Header';
 import FluidAd from '../components/FluidAd';
 import browserCache from '../services/browserCache';
+import { trackArticleView } from '../utils/analytics';
 
 // Lazy load heavy components — they load after article content renders
 const AudioPlayer = React.lazy(() => import('../components/AudioPlayer'));
@@ -267,6 +268,7 @@ const ArticlePage = () => {
           console.log('📋 Commentary queued:', !!data._commentaryQueued);
 
           setArticle(data);
+          trackArticleView(data);
 
           // 🚀 If commentary is queued but not ready, poll for it
           if (data._commentaryQueued && !data.aiCommentary) {

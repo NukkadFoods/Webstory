@@ -10,6 +10,7 @@ import Header from '../components/Header';
 import { ArrowLeft, Loader2, ArrowDown } from 'lucide-react';
 import useLoadMore from '../hooks/useLoadMore';
 import SkeletonHero from '../components/SkeletonHero';
+import { trackCategoryView } from '../utils/analytics';
 
 const CategoryPage = () => {
   const { category } = useParams();
@@ -45,6 +46,7 @@ const CategoryPage = () => {
       setLoading(true);
       try {
         console.log(`Fetching articles for category: ${category}`);
+        trackCategoryView(category);
         
         let data;
         
