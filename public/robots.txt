@@ -1,11 +1,27 @@
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://forexyy.com/sitemap.xml
+# Google AdSense & Ads Crawlers (Essential for matching contextual high-paying ads)
+User-agent: Mediapartners-Google
+Allow: /
 
-# Allow all major search engines
+User-agent: Google-Display-Ads-Bot
+Allow: /
+
+User-agent: AdsBot-Google
+Allow: /
+
+User-agent: AdsBot-Google-Mobile
+Allow: /
+
+# Search Engine News & Content Bots
 User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-News
+Allow: /
+
+User-agent: Googlebot-Image
 Allow: /
 
 User-agent: Bingbot
@@ -17,26 +33,11 @@ Allow: /
 User-agent: DuckDuckBot
 Allow: /
 
-User-agent: Baiduspider
-Allow: /
-
 User-agent: YandexBot
 Allow: /
 
-# Disallow admin or sensitive areas (if any)
-# User-agent: *
-# Disallow: /admin/
-# Disallow: /api/
+# Sitemap
+Sitemap: https://forexyy.com/sitemap.xml
 
-# Allow crawling of all content including articles and categories
-User-agent: *
-Allow: /article/
-Allow: /category/
-Allow: /search
-Allow: /articles
-
-# Crawl-delay for respectful crawling (optional)
-Crawl-delay: 1
-
-# Host directive (preferred domain)
+# Preferred host
 Host: forexyy.com

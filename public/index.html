@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Early queues for GA and AdSense (loaded dynamically on interaction) -->
+    <!-- Google AdSense & Analytics -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1825834035687372" crossorigin="anonymous"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LK5YSTVD3Y"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){window.dataLayer.push(arguments);}
@@ -182,63 +184,5 @@
         </div>
       </div>
     </div>
-
-    <!-- Unified Third-Party Script Loader (Analytics & AdSense deferred for speed) -->
-    <script>
-      (function() {
-        var scriptsLoaded = false;
-        var fallbackTimeout = null;
-
-        function loadExternalScripts() {
-          if (scriptsLoaded) return;
-          scriptsLoaded = true;
-
-          if (fallbackTimeout) clearTimeout(fallbackTimeout);
-          removeListeners();
-
-          // 1. Inject Google Tag Manager (Analytics)
-          var gaScript = document.createElement('script');
-          gaScript.src = "https://www.googletagmanager.com/gtag/js?id=G-LK5YSTVD3Y";
-          gaScript.async = true;
-          document.head.appendChild(gaScript);
-
-          // 2. Inject Google AdSense
-          var adScript = document.createElement('script');
-          adScript.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1825834035687372";
-          adScript.crossOrigin = "anonymous";
-          adScript.async = true;
-          document.body.appendChild(adScript);
-
-          console.log("⚡ Third-party scripts (GA & AdSense) loaded dynamically on interaction.");
-        }
-
-        var events = ['touchstart', 'mousemove', 'scroll', 'click', 'keydown'];
-        
-        function addListeners() {
-          events.forEach(function(event) {
-            window.addEventListener(event, loadExternalScripts, { passive: true });
-          });
-        }
-
-        function removeListeners() {
-          events.forEach(function(event) {
-            window.removeEventListener(event, loadExternalScripts);
-          });
-        }
-
-        // Add event listeners
-        addListeners();
-
-        // 4-second safety fallback (e.g. for search crawlers/bots or slow initial users)
-        fallbackTimeout = setTimeout(loadExternalScripts, 4000);
-
-        // Cleanup
-        window.addEventListener('unload', function() {
-          if (fallbackTimeout) clearTimeout(fallbackTimeout);
-        });
-      })();
-    </script>
-
-
 </body>
 </html>

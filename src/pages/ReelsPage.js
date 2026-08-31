@@ -392,7 +392,7 @@ const ReelsPage = () => {
                             borderRadius: '12px'
                           }}
                           data-ad-client="ca-pub-1825834035687372"
-                          data-ad-slot="4993440134"
+                          data-ad-slot="5827175501"
                           data-ad-format="auto"
                           data-full-width-responsive="true"
                         />

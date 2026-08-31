@@ -1,106 +1,64 @@
-// AdSense Manager to prevent duplicate ad initialization
+// AdSense Manager to manage ad lifecycle and prevent duplicate pushes in SPA
 class AdSenseManager {
   constructor() {
-    this.pushedSlots = new Set();
-    this.adElements = new Map();
-    this.pendingAds = new Set();
-    this.isStrictMode = this.detectStrictMode();
+    this.pushedElements = new WeakSet();
+    this.pendingTimeouts = new Map();
   }
 
-  // Detect if we're in React StrictMode (development)
-  detectStrictMode() {
-    return process.env.NODE_ENV === 'development';
-  }
-
-  // Initialize an ad slot if it hasn't been initialized yet
+  /**
+   * Initialize an ad slot safely
+   * @param {HTMLElement} element - The <ins class="adsbygoogle"> element
+   * @param {string} slotId - Ad unit slot ID
+   */
   initializeAd(element, slotId) {
-    if (!element || !window.adsbygoogle) {
-      console.log('AdSense not ready:', { element: !!element, adsbygoogle: !!window.adsbygoogle });
-      return false;
-    }
+    if (!element) return false;
 
-    const elementId = `${slotId}-${element.dataset.adClient || 'default'}`;
-    
-    // Check if this specific element already has an ad
-    if (this.adElements.has(element)) {
-      console.log('Element already has ad:', elementId);
-      return false;
-    }
-
-    // Check if element already has ad content
-    if (element.innerHTML.trim() !== '') {
-      console.log('Element already has content:', elementId);
-      this.adElements.set(element, elementId);
-      return false;
-    }
-
-    // Prevent duplicate initialization for same slot
-    if (this.pendingAds.has(elementId)) {
-      console.log('Ad already pending:', elementId);
-      return false;
-    }
-
-    try {
-      this.pendingAds.add(elementId);
-      
-      // In strict mode, add extra delay to prevent double initialization
-      const delay = this.isStrictMode ? 200 : 50;
-      
-      setTimeout(() => {
-        // Double check element is still valid and empty
-        if (element.parentNode && element.innerHTML.trim() === '') {
-          try {
-            (window.adsbygoogle = window.adsbygoogle || []).push({});
-            this.pushedSlots.add(elementId);
-            this.adElements.set(element, elementId);
-            console.log('✅ AdSense ad successfully initialized:', elementId);
-          } catch (pushError) {
-            console.error('AdSense push error:', pushError);
-          }
-        }
-        this.pendingAds.delete(elementId);
-      }, delay);
-      
+    // Check if element was already pushed or already has an iframe
+    if (this.pushedElements.has(element) || element.dataset.adsbygoogleStatus === 'done' || element.hasChildNodes()) {
       return true;
-    } catch (error) {
-      console.error('AdSense initialization error:', error);
-      this.pendingAds.delete(elementId);
-      return false;
     }
-  }
 
-  // Remove an ad slot from tracking when component unmounts
-  removeAd(element) {
-    if (this.adElements.has(element)) {
-      const slotId = this.adElements.get(element);
-      this.adElements.delete(element);
-      console.log('🗑️ Removed ad tracking:', slotId);
-    }
-  }
+    const pushAd = () => {
+      if (!element || !element.parentNode) return;
+      if (this.pushedElements.has(element) || element.hasChildNodes()) return;
 
-  // Reset all ads (useful for page navigation)
-  resetAds() {
-    console.log('🔄 Resetting all ads for new page');
-    this.adElements.clear();
-    this.pendingAds.clear();
-    // Keep pushedSlots to prevent re-initialization conflicts
-  }
-
-  // Check if AdSense script is loaded
-  isAdSenseLoaded() {
-    return typeof window !== 'undefined' && window.adsbygoogle;
-  }
-
-  // Get current state for debugging
-  getState() {
-    return {
-      pushedSlots: Array.from(this.pushedSlots),
-      adElements: this.adElements.size,
-      pendingAds: Array.from(this.pendingAds),
-      isStrictMode: this.isStrictMode
+      try {
+        window.adsbygoogle = window.adsbygoogle || [];
+        window.adsbygoogle.push({});
+        this.pushedElements.add(element);
+        element.dataset.adInitialized = 'true';
+        // console.log('✅ AdSense ad initialized for slot:', slotId);
+      } catch (err) {
+        // TagError or already filled
+        if (!err.message?.includes('already have ads')) {
+          console.error('AdSense push error:', err);
+        }
+      }
     };
+
+    // Small timeout to allow DOM layout to stabilize
+    const timeoutId = setTimeout(pushAd, 150);
+    this.pendingTimeouts.set(element, timeoutId);
+
+    return true;
+  }
+
+  /**
+   * Clean up ad tracking on unmount
+   */
+  removeAd(element) {
+    if (element && this.pendingTimeouts.has(element)) {
+      clearTimeout(this.pendingTimeouts.get(element));
+      this.pendingTimeouts.delete(element);
+    }
+  }
+
+  /**
+   * Check if AdSense global script object is available
+   */
+  isAdSenseLoaded() {
+    return typeof window !== 'undefined';
   }
 }
 
-// Export singleton instance
 export const adSenseManager = new AdSenseManager();
