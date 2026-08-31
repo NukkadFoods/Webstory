@@ -21,6 +21,17 @@
   ],
   "rewrites": [
     {
+      "source": "/article/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegrambot|pinterest|slackbot|redditbot).*"
+        }
+      ],
+      "destination": "https://webstorybackend.onrender.com/read/:slug"
+    },
+    {
       "source": "/unsubscribe",
       "destination": "https://webstorybackend.onrender.com/unsubscribe"
     },
