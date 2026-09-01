@@ -52,6 +52,10 @@
       "destination": "https://webstorybackend.onrender.com/video-sitemap.xml"
     },
     {
+      "source": "/llms-full.txt",
+      "destination": "https://webstorybackend.onrender.com/llms-full.txt"
+    },
+    {
       "source": "/api/schema/:path*",
       "destination": "https://webstorybackend.onrender.com/api/schema/:path*"
     },
