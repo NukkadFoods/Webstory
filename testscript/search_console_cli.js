@@ -1,14 +1,19 @@
 /**
  * Google Search Console & Indexing CLI for forexyy.com
+ * Includes: Sitemap submissions, URL Inspection, Search Analytics, Indexing API
  */
 const https = require('https');
 const fs = require('fs');
 const crypto = require('crypto');
-const path = require('path');
 
 const keyFilePath = '/Users/ajaytiwari/Downloads/deploymate-507121-02865c36d808.json';
 const domainSite = 'sc-domain:forexyy.com';
-const sitemapUrl = 'https://forexyy.com/sitemap.xml';
+
+const SITEMAPS = [
+  'https://forexyy.com/sitemap.xml',
+  'https://forexyy.com/news-sitemap.xml',
+  'https://forexyy.com/video-sitemap.xml'
+];
 
 function base64UrlEncode(str) {
   return Buffer.from(str)
@@ -75,7 +80,7 @@ function requestJson(options, postData = null) {
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
       let body = '';
-      res.on('data', c => body += c);
+      res.on('data', chunk => body += chunk);
       res.on('end', () => {
         try {
           resolve(JSON.parse(body));
@@ -109,25 +114,33 @@ async function listSitemaps(token) {
   });
 }
 
-async function submitSitemap(token) {
+async function submitSitemapUrl(token, url) {
   return requestJson({
     hostname: 'searchconsole.googleapis.com',
-    path: `/webmasters/v3/sites/${encodeURIComponent(domainSite)}/sitemaps/${encodeURIComponent(sitemapUrl)}`,
+    path: `/webmasters/v3/sites/${encodeURIComponent(domainSite)}/sitemaps/${encodeURIComponent(url)}`,
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${token}` }
   });
 }
 
-async function getSearchAnalytics(token) {
-  const endDate = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+async function inspectUrl(token, inspectionUrl) {
+  return requestJson({
+    hostname: 'searchconsole.googleapis.com',
+    path: '/v1/urlInspection/index:inspect',
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  }, {
+    inspectionUrl: inspectionUrl,
+    siteUrl: domainSite
+  });
+}
 
-  const body = {
-    startDate,
-    endDate,
-    dimensions: ['query'],
-    rowLimit: 15
-  };
+async function getSearchAnalytics(token, days = 28) {
+  const endDate = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   return requestJson({
     hostname: 'searchconsole.googleapis.com',
@@ -137,51 +150,105 @@ async function getSearchAnalytics(token) {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     }
-  }, body);
+  }, {
+    startDate,
+    endDate,
+    dimensions: ['query'],
+    rowLimit: 20
+  });
+}
+
+async function getTopPages(token, days = 28) {
+  const endDate = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  return requestJson({
+    hostname: 'searchconsole.googleapis.com',
+    path: `/webmasters/v3/sites/${encodeURIComponent(domainSite)}/searchAnalytics/query`,
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  }, {
+    startDate,
+    endDate,
+    dimensions: ['page'],
+    rowLimit: 10
+  });
+}
+
+async function publishUrlToIndexingApi(token, url) {
+  return requestJson({
+    hostname: 'indexing.googleapis.com',
+    path: '/v3/urlNotifications:publish',
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  }, {
+    url: url,
+    type: 'URL_UPDATED'
+  });
 }
 
 async function main() {
   console.log('====================================================');
-  console.log('  🔍 Google Search Console Dashboard - forexyy.com   ');
+  console.log('  🔍 Google Search Console Advanced Optimization     ');
+  console.log('  Target: forexyy.com                                ');
   console.log('====================================================\n');
 
   try {
     const token = await getServiceAccountToken();
-    console.log('✅ Service Account Authentication: OK');
-    console.log(`Service Account: tiwariajay033-gmail-com@deploymate-507121.iam.gserviceaccount.com\n`);
+    console.log('✅ Authenticated with Google Cloud Service Account\n');
 
-    // 1. List Sites
-    console.log('🔹 [1/3] Verified Properties in Google Search Console:');
-    const sites = await listSites(token);
-    if (sites.siteEntry && sites.siteEntry.length > 0) {
-      sites.siteEntry.forEach(s => {
-        console.log(`   - Property: ${s.siteUrl} | Access Level: ${s.permissionLevel}`);
-      });
-    } else {
-      console.log('   No sites returned:', sites);
+    // 1. Submit All Core Sitemaps
+    console.log('🔹 [1/4] Submitting & Verifying All Sitemaps:');
+    for (const sm of SITEMAPS) {
+      await submitSitemapUrl(token, sm);
+      console.log(`   📤 Submitted: ${sm}`);
     }
-    console.log('');
-
-    // 2. Submit & Check Sitemaps
-    console.log('🔹 [2/3] Sitemaps Status:');
-    await submitSitemap(token);
-    console.log(`   Submitted Sitemap: ${sitemapUrl}`);
 
     const sitemaps = await listSitemaps(token);
+    console.log('\n   Active Sitemaps in Search Console:');
     if (sitemaps.sitemap && sitemaps.sitemap.length > 0) {
       sitemaps.sitemap.forEach(sm => {
-        console.log(`   - Path: ${sm.path}`);
-        console.log(`     Last Downloaded: ${sm.lastDownloaded || 'Pending initial crawl'}`);
-        console.log(`     Warnings: ${sm.warnings || 0} | Errors: ${sm.errors || 0}`);
+        console.log(`   - ${sm.path}`);
+        console.log(`     Last Downloaded: ${sm.lastDownloaded || 'Queued'}`);
+        console.log(`     Errors: ${sm.errors || 0} | Warnings: ${sm.warnings || 0}`);
       });
-    } else {
-      console.log('   Sitemap submitted successfully and queued for Googlebot crawl.');
     }
-    console.log('');
 
-    // 3. Search Analytics
-    console.log('🔹 [3/3] Top Google Search Queries (Last 28 Days):');
-    const analytics = await getSearchAnalytics(token);
+    // 2. URL Inspection on Homepage & Key Pages
+    console.log('\n🔹 [2/4] Live URL Inspection (Googlebot Coverage & Rich Results):');
+    const testUrls = [
+      'https://forexyy.com/',
+      'https://forexyy.com/category/business'
+    ];
+
+    for (const u of testUrls) {
+      try {
+        const inspection = await inspectUrl(token, u);
+        const result = inspection.inspectionResult;
+        if (result) {
+          const indexStatus = result.indexStatusResult || {};
+          console.log(`   🔍 URL: ${u}`);
+          console.log(`      Verdict: ${indexStatus.verdict || 'Unknown'}`);
+          console.log(`      Coverage: ${indexStatus.coverageState || 'Pending'}`);
+          console.log(`      Robots.txt: ${indexStatus.robotsTxtState || 'Unknown'}`);
+          console.log(`      Last Crawl: ${indexStatus.lastCrawlTime || 'Not crawled yet'}`);
+        } else {
+          console.log(`   🔍 URL: ${u} - Inspection queued / not indexed yet`);
+        }
+      } catch (e) {
+        console.log(`   ⚠️ Inspection for ${u}: ${e.message}`);
+      }
+    }
+
+    // 3. Search Analytics - Top Queries
+    console.log('\n🔹 [3/4] Search Analytics - Top Queries:');
+    const analytics = await getSearchAnalytics(token, 28);
     if (analytics.rows && analytics.rows.length > 0) {
       console.log('   ┌─────────────────────────────────┬────────┬─────────────┬────────┬──────────┐');
       console.log('   │ Query                           │ Clicks │ Impressions │ CTR    │ Position │');
@@ -196,16 +263,36 @@ async function main() {
       });
       console.log('   └─────────────────────────────────┴────────┴─────────────┴────────┴──────────┘');
     } else {
-      console.log('   No search query rows yet (Google Search Console typically updates queries daily).');
+      console.log('   No search query data yet.');
+    }
+
+    // 4. Indexing API Instant Notification Test
+    console.log('\n🔹 [4/4] Google Indexing API Test:');
+    const indexResult = await publishUrlToIndexingApi(token, 'https://forexyy.com/');
+    if (indexResult.urlNotificationMetadata) {
+      console.log('   ✅ Successfully notified Google Indexing API for instant crawl of https://forexyy.com/');
+      console.log(`   Notify Time: ${indexResult.urlNotificationMetadata.latestUpdate?.notifyTime}`);
+    } else {
+      console.log('   Response:', indexResult);
     }
 
     console.log('\n====================================================');
-    console.log('✅ Google Search Console connected and sitemap submitted!');
+    console.log('✅ Google Search Console Optimization Run Complete');
     console.log('====================================================\n');
 
   } catch (err) {
-    console.error('❌ Search Console Error:', err.message);
+    console.error('❌ Search Console Optimization Error:', err.message);
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  getServiceAccountToken,
+  submitSitemapUrl,
+  inspectUrl,
+  publishUrlToIndexingApi,
+  getSearchAnalytics
+};
