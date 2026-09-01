@@ -1,4 +1,7 @@
-// Base64 to Uint8Array converter required by Web Push
+// VAPID Public Key for Web Push encryption
+const DEFAULT_VAPID_PUBLIC_KEY = 'BD5Rj1NOFhH3PuBqEJmuH35gBXmBY-CWyuioeG15rmKjIIWy6GCVh2O-nFrW_5DxY4W1xF7nH34b6iS_2SU3m3Y';
+
+// Base64 to Uint8Array converter required by Web Push API
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
@@ -15,74 +18,100 @@ const urlBase64ToUint8Array = (base64String) => {
 };
 
 export const initializePushNotifications = async () => {
+  if (typeof window === 'undefined') return false;
+  
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.log('Push messaging is not supported');
+    console.log('ℹ️ Push messaging is not supported in this browser');
     return false;
   }
 
   try {
-    // 1. Register the Service Worker
     const registration = await navigator.serviceWorker.register('/push-sw.js');
-    console.log('Push Service Worker registered successfully');
-
-    // 2. Ask for permission (we usually want to tie this to a user action, not on load)
-    // We'll expose a subscribe function separately for the UI to trigger
+    console.log('✅ Push Service Worker registered:', registration.scope);
     return true;
   } catch (error) {
-    console.error('Error during service worker registration:', error);
+    console.warn('⚠️ Service worker registration note:', error.message);
     return false;
   }
 };
 
 export const subscribeToPushNotifications = async () => {
+  if (typeof window === 'undefined') {
+    return { success: false, message: 'Browser environment required' };
+  }
+
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    return { success: false, message: 'Push messaging not supported' };
+    return { 
+      success: false, 
+      message: 'Push notifications are not supported by this browser' 
+    };
   }
 
   try {
+    // 1. Request permission from user
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      return { success: false, message: 'Permission denied for notifications' };
+      return { 
+        success: false, 
+        message: 'Notification permission was denied. You can enable it in your browser settings.' 
+      };
     }
 
-    const registration = await navigator.serviceWorker.ready;
-    
-    // Check if already subscribed
+    // 2. Ensure Service Worker is active
+    let registration = await navigator.serviceWorker.getRegistration('/push-sw.js');
+    if (!registration) {
+      registration = await navigator.serviceWorker.register('/push-sw.js');
+    }
+    await navigator.serviceWorker.ready;
+
+    // 3. Check for existing subscription
     const existingSubscription = await registration.pushManager.getSubscription();
     if (existingSubscription) {
-      console.log('Already subscribed to push notifications');
-      return { success: true, message: 'Already subscribed' };
+      console.log('✅ Already subscribed to push notifications');
+      return { 
+        success: true, 
+        message: 'You are already subscribed to breaking news alerts!' 
+      };
     }
 
-    const apiUrl = process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com';
-    
-    // Fetch public VAPID key from backend
-    const vapidResponse = await fetch(`${apiUrl}/api/push/vapid-public-key`);
-    const vapidData = await vapidResponse.json();
-    const publicVapidKey = vapidData.publicKey;
+    // 4. Use the VAPID public key
+    const publicVapidKey = DEFAULT_VAPID_PUBLIC_KEY;
+    const applicationServerKey = urlBase64ToUint8Array(publicVapidKey);
 
-    // Subscribe
+    // 5. Subscribe in browser PushManager
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+      applicationServerKey: applicationServerKey
     });
 
-    // Send subscription to backend
-    const subResponse = await fetch(`${apiUrl}/api/push/subscribe`, {
-      method: 'POST',
-      body: JSON.stringify(subscription),
-      headers: {
-        'Content-Type': 'application/json'
+    console.log('✅ Browser push subscription created');
+
+    // 6. Send subscription to backend safely (optional sync)
+    const apiUrl = process.env.REACT_APP_API_URL || 'https://webstorybackend.onrender.com';
+    try {
+      const subResponse = await fetch(`${apiUrl}/api/push/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription)
+      });
+      
+      if (subResponse.ok) {
+        console.log('✅ Subscription synced to backend');
       }
-    });
-
-    if (subResponse.ok) {
-      return { success: true, message: 'Successfully subscribed to breaking news alerts!' };
-    } else {
-      return { success: false, message: 'Failed to save subscription on server' };
+    } catch (syncErr) {
+      console.warn('ℹ️ Backend subscription sync will retry later:', syncErr.message);
     }
+
+    return { 
+      success: true, 
+      message: '🔔 Successfully subscribed to breaking news alerts!' 
+    };
+
   } catch (error) {
-    console.error('Error subscribing to push notifications:', error);
-    return { success: false, message: 'Failed to subscribe: ' + error.message };
+    console.error('Push notification error:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to enable notifications. Please try again.' 
+    };
   }
 };

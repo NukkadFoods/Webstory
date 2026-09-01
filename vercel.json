@@ -54,6 +54,10 @@
     {
       "source": "/api/schema/:path*",
       "destination": "https://webstorybackend.onrender.com/api/schema/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://webstorybackend.onrender.com/api/:path*"
     }
   ]
 }
