@@ -1,5 +1,12 @@
 User-agent: *
 Allow: /
+Allow: /article/
+Allow: /category/
+Allow: /search
+Allow: /articles
+Allow: /read/
+Allow: /llms.txt
+Allow: /llms-full.txt
 
 # Google AdSense & Ads Crawlers (Essential for matching contextual high-paying ads)
 User-agent: Mediapartners-Google
@@ -33,11 +40,53 @@ Allow: /
 User-agent: DuckDuckBot
 Allow: /
 
+User-agent: Baiduspider
+Allow: /
+
 User-agent: YandexBot
 Allow: /
 
-# Sitemap
+# AI Search Engines & LLM Crawlers (Generative Engine Optimization - GEO)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: DeepSeekBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+# Sitemaps
 Sitemap: https://forexyy.com/sitemap.xml
+Sitemap: https://forexyy.com/news-sitemap.xml
+Sitemap: https://forexyy.com/video-sitemap.xml
 
 # Preferred host
 Host: forexyy.com
