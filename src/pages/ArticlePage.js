@@ -404,9 +404,38 @@ const ArticlePage = () => {
       };
     }
 
-    if (article.aiCommentary) {
-      schema.articleBody = article.aiCommentary.substring(0, 5000);
-    }
+    const sectionName = (article.section || "News").charAt(0).toUpperCase() + (article.section || "News").slice(1);
+    const categoryUrl = `${baseUrl}/category/${(article.section || "news").toLowerCase()}`;
+
+    const fullSchema = {
+      "@context": "https://schema.org",
+      "@graph": [
+        schema,
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": baseUrl
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": sectionName,
+              "item": categoryUrl
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": article.title,
+              "item": articleUrl
+            }
+          ]
+        }
+      ]
+    };
 
     // Inject or update the JSON-LD script
     let scriptTag = document.querySelector('script[data-schema="article"]');
@@ -416,7 +445,7 @@ const ArticlePage = () => {
       scriptTag.setAttribute('data-schema', 'article');
       document.head.appendChild(scriptTag);
     }
-    scriptTag.textContent = JSON.stringify(schema);
+    scriptTag.textContent = JSON.stringify(fullSchema);
 
     // Cleanup on unmount
     return () => {

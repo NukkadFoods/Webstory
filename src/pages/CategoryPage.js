@@ -92,6 +92,61 @@ const CategoryPage = () => {
 
   const displayName = categoryNames[category] || category.charAt(0).toUpperCase() + category.slice(1);
 
+  // Inject JSON-LD Schema for SEO (CollectionPage + BreadcrumbList)
+  useEffect(() => {
+    document.title = `${displayName} News & AI Analysis | Forexyy`;
+    const categoryUrl = `https://forexyy.com/category/${category}`;
+
+    const schema = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "CollectionPage",
+          "@id": categoryUrl,
+          "url": categoryUrl,
+          "name": `${displayName} News | Forexyy`,
+          "description": `Latest ${displayName} news, breaking updates, and AI-powered audio commentary on Forexyy.`,
+          "isPartOf": {
+            "@type": "WebSite",
+            "name": "Forexyy",
+            "url": "https://forexyy.com"
+          }
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://forexyy.com"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": displayName,
+              "item": categoryUrl
+            }
+          ]
+        }
+      ]
+    };
+
+    let scriptTag = document.querySelector('script[data-schema="category"]');
+    if (!scriptTag) {
+      scriptTag = document.createElement('script');
+      scriptTag.type = 'application/ld+json';
+      scriptTag.setAttribute('data-schema', 'category');
+      document.head.appendChild(scriptTag);
+    }
+    scriptTag.textContent = JSON.stringify(schema);
+
+    return () => {
+      const tag = document.querySelector('script[data-schema="category"]');
+      if (tag) tag.remove();
+    };
+  }, [category, displayName]);
+
   // Generate clean, SEO-friendly article link
   const getArticleLink = (article) => {
     // Priority 1: Use MongoDB _id

@@ -13,27 +13,41 @@
       window.adsbygoogle = window.adsbygoogle || [];
     </script>
 
-    <!-- NewsMediaOrganization Schema for Google News/Discover E-E-A-T signals -->
+    <!-- NewsMediaOrganization & WebSite SearchAction Schema -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "NewsMediaOrganization",
-      "name": "Forexyy",
-      "url": "https://forexyy.com",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://forexyy.com/forexyy_logo_80.png",
-        "width": 80,
-        "height": 80
-      },
-      "description": "AI-powered news analysis with audio commentary. Breaking news in politics, business, technology, finance, and more.",
-      "foundingDate": "2025",
-      "publishingPrinciples": "https://forexyy.com/about",
-      "actionableFeedbackPolicy": "https://forexyy.com/about",
-      "correctionsPolicy": "https://forexyy.com/about",
-      "ethicsPolicy": "https://forexyy.com/about",
-      "masthead": "https://forexyy.com/about",
-      "sameAs": []
+      "@graph": [
+        {
+          "@type": "NewsMediaOrganization",
+          "name": "Forexyy",
+          "url": "https://forexyy.com",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://forexyy.com/forexyy_logo_80.png",
+            "width": 80,
+            "height": 80
+          },
+          "description": "AI-powered news analysis with audio commentary. Breaking news in politics, business, technology, finance, and more.",
+          "foundingDate": "2025",
+          "publishingPrinciples": "https://forexyy.com/about",
+          "actionableFeedbackPolicy": "https://forexyy.com/about",
+          "correctionsPolicy": "https://forexyy.com/about",
+          "ethicsPolicy": "https://forexyy.com/about",
+          "masthead": "https://forexyy.com/about",
+          "sameAs": []
+        },
+        {
+          "@type": "WebSite",
+          "name": "Forexyy",
+          "url": "https://forexyy.com",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://forexyy.com/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
     }
     </script>
 
