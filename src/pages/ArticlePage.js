@@ -1295,9 +1295,20 @@ const ArticlePage = () => {
 
         {/* DESKTOP: Title Section - Full Width */}
         <div className="hidden sm:block mb-3 sm:mb-4">
-          <div className="flex flex-wrap gap-2 mb-2 sm:mb-3">
-            <span className="bg-blue-100 text-blue-800 text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
-            <span className="text-gray-600 text-[10px] sm:text-xs py-1 flex items-center gap-1"><Clock size={12} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-2 sm:mb-3">
+            <div className="flex items-center gap-2">
+              <span className="bg-blue-100 text-blue-800 text-[10px] sm:text-xs font-bold px-2 py-1 rounded uppercase">{article.section || 'News'}</span>
+              <span className="text-gray-600 text-[10px] sm:text-xs py-1 flex items-center gap-1"><Clock size={12} /> {new Date(article.published_date || Date.now()).toLocaleDateString()}</span>
+            </div>
+            <a
+              href="https://news.google.com/search?q=forexyy.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 hover:border-blue-300 transition-all shadow-sm"
+            >
+              <span className="text-yellow-500">⭐</span>
+              <span>Follow on Google News</span>
+            </a>
           </div>
           <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight font-serif">{article.title}</h1>
         </div>
