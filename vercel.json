@@ -56,6 +56,14 @@
       "destination": "https://webstorybackend.onrender.com/llms-full.txt"
     },
     {
+      "source": "/feed",
+      "destination": "https://webstorybackend.onrender.com/feed"
+    },
+    {
+      "source": "/rss.xml",
+      "destination": "https://webstorybackend.onrender.com/rss.xml"
+    },
+    {
       "source": "/api/schema/:path*",
       "destination": "https://webstorybackend.onrender.com/api/schema/:path*"
     },
