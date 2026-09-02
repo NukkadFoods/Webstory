@@ -389,6 +389,12 @@ const ArticlePage = () => {
         "@id": articleUrl
       },
       "articleSection": article.section || "News",
+      "isAccessibleForFree": true,
+      "isPartOf": {
+        "@type": ["CreativeWork", "Product"],
+        "name": "Forexyy",
+        "productID": "CAowzdrHDA:openaccess"
+      },
       "speakable": {
         "@type": "SpeakableSpecification",
         "cssSelector": [".article-title", ".article-summary", ".ai-commentary"]
